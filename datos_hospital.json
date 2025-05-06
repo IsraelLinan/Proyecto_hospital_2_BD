@@ -1,0 +1,531 @@
+{
+    "pacientes": [
+        {
+            "id": 1,
+            "nombre": "israel linan",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 22:29:34",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:30:27"
+        },
+        {
+            "id": 2,
+            "nombre": "ruth linan",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 22:29:45",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:30:43"
+        },
+        {
+            "id": 3,
+            "nombre": "elias linan",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 22:29:53",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:31:30"
+        },
+        {
+            "id": 4,
+            "nombre": "julio linan",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
+            "fecha_registro": "2025-05-05 22:30:16",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:31:55"
+        },
+        {
+            "id": 5,
+            "nombre": "alba bella ferrari",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 22:33:30",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:39:23"
+        },
+        {
+            "id": 6,
+            "nombre": "juan perez",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 22:33:49",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:40:03"
+        },
+        {
+            "id": 7,
+            "nombre": "alex broca",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
+            "fecha_registro": "2025-05-05 22:34:08",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:39:44"
+        },
+        {
+            "id": 8,
+            "nombre": "COCO MARUSIX",
+            "especialidad": "Cirug\u00eda",
+            "consultorio": "Consultorio 3",
+            "fecha_registro": "2025-05-05 22:34:26",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:38:47"
+        },
+        {
+            "id": 9,
+            "nombre": "FLAVIA LAOS",
+            "especialidad": "Cirug\u00eda",
+            "consultorio": "Consultorio 3",
+            "fecha_registro": "2025-05-05 22:34:34",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:39:04"
+        },
+        {
+            "id": 10,
+            "nombre": "Dolores Fuertes",
+            "especialidad": "Dental",
+            "consultorio": "Consultorio 14",
+            "fecha_registro": "2025-05-05 22:44:00",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:47:06"
+        },
+        {
+            "id": 11,
+            "nombre": "Armando Bronca",
+            "especialidad": "Dental",
+            "consultorio": "Consultorio 14",
+            "fecha_registro": "2025-05-05 22:44:12",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:47:58"
+        },
+        {
+            "id": 12,
+            "nombre": "Dolores Delano",
+            "especialidad": "Psicolog\u00eda",
+            "consultorio": "Consultorio 13",
+            "fecha_registro": "2025-05-05 22:44:36",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:46:22"
+        },
+        {
+            "id": 13,
+            "nombre": "Pere Gil",
+            "especialidad": "Psicolog\u00eda",
+            "consultorio": "Consultorio 13",
+            "fecha_registro": "2025-05-05 22:44:52",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:46:31"
+        },
+        {
+            "id": 14,
+            "nombre": "Fermin Galarga",
+            "especialidad": "Obstetricia 2",
+            "consultorio": "Consultorio 12",
+            "fecha_registro": "2025-05-05 22:45:09",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:47:36"
+        },
+        {
+            "id": 15,
+            "nombre": "Elba Surero",
+            "especialidad": "Obstetricia 1",
+            "consultorio": "Consultorio 11",
+            "fecha_registro": "2025-05-05 22:45:31",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:46:48"
+        },
+        {
+            "id": 16,
+            "nombre": "edwin pacheco",
+            "especialidad": "Neurolog\u00eda",
+            "consultorio": "Consultorio 7",
+            "fecha_registro": "2025-05-05 22:49:44",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:41:45"
+        },
+        {
+            "id": 17,
+            "nombre": "abraham valdelomar",
+            "especialidad": "Neurolog\u00eda",
+            "consultorio": "Consultorio 7",
+            "fecha_registro": "2025-05-05 22:49:54",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:41:54"
+        },
+        {
+            "id": 18,
+            "nombre": "la pacora",
+            "especialidad": "Ur\u00f3logo",
+            "consultorio": "Consultorio 8",
+            "fecha_registro": "2025-05-05 22:50:08",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:42:14"
+        },
+        {
+            "id": 19,
+            "nombre": "edito perez",
+            "especialidad": "Cardiolog\u00eda",
+            "consultorio": "Consultorio 9",
+            "fecha_registro": "2025-05-05 22:50:24",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:43:42"
+        },
+        {
+            "id": 20,
+            "nombre": "chicho dominguez",
+            "especialidad": "Cardiolog\u00eda",
+            "consultorio": "Consultorio 9",
+            "fecha_registro": "2025-05-05 22:50:35",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:43:50"
+        },
+        {
+            "id": 21,
+            "nombre": "cris soifer",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 22:55:05",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:56:50"
+        },
+        {
+            "id": 22,
+            "nombre": "fernando mantilla",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
+            "fecha_registro": "2025-05-05 22:55:21",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:56:39"
+        },
+        {
+            "id": 23,
+            "nombre": "miguel miranda",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
+            "fecha_registro": "2025-05-05 22:55:50",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 22:57:07"
+        },
+        {
+            "id": 24,
+            "nombre": "israel linan",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:20:53",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:24:16"
+        },
+        {
+            "id": 25,
+            "nombre": "ruth linan",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:21:02",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:24:24"
+        },
+        {
+            "id": 26,
+            "nombre": "elias linan",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:21:12",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:24:34"
+        },
+        {
+            "id": 27,
+            "nombre": "luis mattos",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
+            "fecha_registro": "2025-05-05 23:21:27",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:23:40"
+        },
+        {
+            "id": 28,
+            "nombre": "pablo quispe",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
+            "fecha_registro": "2025-05-05 23:21:38",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:23:49"
+        },
+        {
+            "id": 29,
+            "nombre": "maria mercedez",
+            "especialidad": "Cirug\u00eda",
+            "consultorio": "Consultorio 3",
+            "fecha_registro": "2025-05-05 23:21:48",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:23:26"
+        },
+        {
+            "id": 30,
+            "nombre": "leonardo fabio",
+            "especialidad": "Pediatr\u00eda",
+            "consultorio": "Consultorio 4",
+            "fecha_registro": "2025-05-05 23:22:04",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:24:00"
+        },
+        {
+            "id": 31,
+            "nombre": "maria",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:26:23",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:27:17"
+        },
+        {
+            "id": 32,
+            "nombre": "pepe",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:26:31",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:27:25"
+        },
+        {
+            "id": 33,
+            "nombre": "juana",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:26:37",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:27:32"
+        },
+        {
+            "id": 34,
+            "nombre": "mario",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:26:45",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:27:41"
+        },
+        {
+            "id": 35,
+            "nombre": "jose",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:26:53",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:27:47"
+        },
+        {
+            "id": 36,
+            "nombre": "juan",
+            "especialidad": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1",
+            "fecha_registro": "2025-05-05 23:27:03",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:27:56"
+        },
+        {
+            "id": 37,
+            "nombre": "maria",
+            "especialidad": "Dental",
+            "consultorio": "Consultorio 14",
+            "fecha_registro": "2025-05-05 23:30:11",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:33:13"
+        },
+        {
+            "id": 38,
+            "nombre": "jose",
+            "especialidad": "Dental",
+            "consultorio": "Consultorio 14",
+            "fecha_registro": "2025-05-05 23:30:16",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:34:04"
+        },
+        {
+            "id": 39,
+            "nombre": "pablo",
+            "especialidad": "Dental",
+            "consultorio": "Consultorio 14",
+            "fecha_registro": "2025-05-05 23:30:22",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:34:42"
+        },
+        {
+            "id": 40,
+            "nombre": "flavio",
+            "especialidad": "Dental",
+            "consultorio": "Consultorio 14",
+            "fecha_registro": "2025-05-05 23:30:29",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:34:55"
+        },
+        {
+            "id": 41,
+            "nombre": "miguel",
+            "especialidad": "Psicolog\u00eda",
+            "consultorio": "Consultorio 13",
+            "fecha_registro": "2025-05-05 23:30:42",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:33:34"
+        },
+        {
+            "id": 42,
+            "nombre": "feliciano",
+            "especialidad": "Psicolog\u00eda",
+            "consultorio": "Consultorio 13",
+            "fecha_registro": "2025-05-05 23:31:01",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:34:16"
+        },
+        {
+            "id": 43,
+            "nombre": "felix",
+            "especialidad": "Psicolog\u00eda",
+            "consultorio": "Consultorio 13",
+            "fecha_registro": "2025-05-05 23:31:08",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:34:30"
+        },
+        {
+            "id": 44,
+            "nombre": "yuca",
+            "especialidad": "Obstetricia 2",
+            "consultorio": "Consultorio 12",
+            "fecha_registro": "2025-05-05 23:31:21",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:33:24"
+        },
+        {
+            "id": 45,
+            "nombre": "frijol",
+            "especialidad": "Obstetricia 1",
+            "consultorio": "Consultorio 11",
+            "fecha_registro": "2025-05-05 23:31:37",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:33:51"
+        },
+        {
+            "id": 46,
+            "nombre": "la luchita",
+            "especialidad": "Ur\u00f3logo",
+            "consultorio": "Consultorio 5",
+            "fecha_registro": "2025-05-05 23:36:41",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:41:13"
+        },
+        {
+            "id": 47,
+            "nombre": "silvia",
+            "especialidad": "Ur\u00f3logo",
+            "consultorio": "Consultorio 5",
+            "fecha_registro": "2025-05-05 23:36:49",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:41:28"
+        },
+        {
+            "id": 48,
+            "nombre": "mani",
+            "especialidad": "Cardiolog\u00eda",
+            "consultorio": "Consultorio 6",
+            "fecha_registro": "2025-05-05 23:37:02",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:43:11"
+        },
+        {
+            "id": 49,
+            "nombre": "karen",
+            "especialidad": "Radiolog\u00eda",
+            "consultorio": "Consultorio 7",
+            "fecha_registro": "2025-05-05 23:37:23",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:42:03"
+        },
+        {
+            "id": 50,
+            "nombre": "rosa",
+            "especialidad": "Radiolog\u00eda",
+            "consultorio": "Consultorio 7",
+            "fecha_registro": "2025-05-05 23:37:28",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:42:39"
+        },
+        {
+            "id": 51,
+            "nombre": "donatelo",
+            "especialidad": "Medicina",
+            "consultorio": "Consultorio 10",
+            "fecha_registro": "2025-05-05 23:37:51",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:42:25"
+        },
+        {
+            "id": 52,
+            "nombre": "prueba",
+            "especialidad": "Medicina",
+            "consultorio": "Consultorio 10",
+            "fecha_registro": "2025-05-05 23:40:35",
+            "atendido": true,
+            "fecha_atencion": "2025-05-05 23:42:48"
+        }
+    ],
+    "ultimo_llamado": null,
+    "especialidades": [
+        {
+            "nombre": "Traumatolog\u00eda",
+            "consultorio": "Consultorio 1"
+        },
+        {
+            "nombre": "Internista",
+            "consultorio": "Consultorio 2"
+        },
+        {
+            "nombre": "Cirug\u00eda",
+            "consultorio": "Consultorio 3"
+        },
+        {
+            "nombre": "Pediatr\u00eda",
+            "consultorio": "Consultorio 4"
+        },
+        {
+            "nombre": "Ginecolog\u00eda",
+            "consultorio": "Consultorio 5"
+        },
+        {
+            "nombre": "Neurolog\u00eda",
+            "consultorio": "Consultorio 6"
+        },
+        {
+            "nombre": "Ur\u00f3logo",
+            "consultorio": "Consultorio 7"
+        },
+        {
+            "nombre": "Cardiolog\u00eda",
+            "consultorio": "Consultorio 8"
+        },
+        {
+            "nombre": "Radiolog\u00eda",
+            "consultorio": "Consultorio 9"
+        },
+        {
+            "nombre": "Medicina",
+            "consultorio": "Consultorio 10"
+        },
+        {
+            "nombre": "Obstetricia 1",
+            "consultorio": "Consultorio 11"
+        },
+        {
+            "nombre": "Obstetricia 2",
+            "consultorio": "Consultorio 12"
+        },
+        {
+            "nombre": "Psicolog\u00eda",
+            "consultorio": "Consultorio 13"
+        },
+        {
+            "nombre": "Dental",
+            "consultorio": "Consultorio 14"
+        }
+    ]
+}
