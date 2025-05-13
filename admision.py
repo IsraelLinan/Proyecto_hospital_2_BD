@@ -13,7 +13,6 @@ from hospital_lib import (
     obtener_especialidad_consultorio
 )
 
-
 class ModuloAdmision:
     def __init__(self):
         self.archivo_datos = 'datos_hospital.json' #r'\\192.168.10.220\cita_medicas_hap\datos_hospital.json'  
@@ -167,47 +166,58 @@ class ModuloAdmision:
         self.actualizar_listas()
 
     def actualizar_listas(self):
-        """Actualiza las listas de pacientes en espera y atendidos"""
-        self.wait_listbox.delete(0, tk.END)
-        self.hist_listbox.delete(0, tk.END)
+       """Actualiza las listas de pacientes en espera y atendidos"""
+       # Asegurémonos de que las listas existan
+       if not hasattr(self, 'wait_listbox'):
+           self.wait_listbox = tk.Listbox(self.root, font=('Arial', 12), selectbackground='#e0e0e0', width=40, height=20)
+           self.wait_listbox.pack(padx=5, pady=5, fill='both', expand=True)
+
+       if not hasattr(self, 'hist_listbox'):
+           self.hist_listbox = tk.Listbox(self.root, font=('Arial', 12), selectbackground='#e0e0e0', width=40, height=20)
+           self.hist_listbox.pack(padx=5, pady=5, fill='both', expand=True)
+    
+       self.wait_listbox.delete(0, tk.END)
+       self.hist_listbox.delete(0, tk.END)
 
         # Agrupar pacientes por consultorio
-        pacientes_por_consultorio = {}
-        hoy = datetime.now().strftime("%Y-%m-%d")
-        
-        for p in self.datos['pacientes']:
+       pacientes_por_consultorio = {}
+       hoy = datetime.now().strftime("%Y-%m-%d")
+    
+       for p in self.datos['pacientes']:
             if p['fecha_registro'].startswith(hoy):
-                consultorio = p['consultorio']
-                if consultorio not in pacientes_por_consultorio:
-                    pacientes_por_consultorio[consultorio] = {'espera': [], 'atendidos': []}
-            
+               consultorio = p.get('consultorio', None) #Asignar valor del consultorio
+               if consultorio is None:
+                   continue #Si no tiene un consultorio asignado, lo omitimos
+               if consultorio not in pacientes_por_consultorio:
+                   pacientes_por_consultorio[consultorio] = {'espera': [], 'atendidos': []}
+        
             if p.get('atendido'):
                 pacientes_por_consultorio[consultorio]['atendidos'].append(p)
             else:
                 pacientes_por_consultorio[consultorio]['espera'].append(p)
 
         # Mostrar en espera agrupados por consultorio
-        for consultorio in sorted(pacientes_por_consultorio.keys()):
+       for consultorio in sorted(pacientes_por_consultorio.keys()):
             pacientes = sorted(pacientes_por_consultorio[consultorio]['espera'], 
-                             key=lambda x: x['fecha_registro'])
-            
+                         key=lambda x: x['fecha_registro'])
+        
             self.wait_listbox.insert(tk.END, f"--- {consultorio} ---")
             for p in pacientes:
-                h = p['fecha_registro'].split(' ')[1][:5]
-                self.wait_listbox.insert(tk.END, f"  {p['id']}. {p['nombre']} ({h})")
+               h = p['fecha_registro'].split(' ')[1][:5]
+               self.wait_listbox.insert(tk.END, f"  {p['id']}. {p['nombre']} ({h})")
 
         # Mostrar atendidos ordenados por tiempo de atención
-        todos_atendidos = []
-        for consultorio in pacientes_por_consultorio:
-            todos_atendidos.extend(pacientes_por_consultorio[consultorio]['atendidos'])
-        
-        todos_atendidos.sort(key=lambda x: x.get('fecha_atencion', ''), reverse=True)
-        
-        for p in todos_atendidos[:20]:  # Mostrar solo los últimos 20
-            h_reg = p['fecha_registro'].split(' ')[1][:5]
-            h_aten = p.get('fecha_atencion', '').split(' ')[1][:5] if 'fecha_atencion' in p else ''
-            self.hist_listbox.insert(tk.END, 
-                                   f"{p['id']}. {p['nombre']} ({p['consultorio']}) - Reg: {h_reg}, At: {h_aten}")
+       todos_atendidos = []
+       for consultorio in pacientes_por_consultorio:
+           todos_atendidos.extend(pacientes_por_consultorio[consultorio]['atendidos'])
+    
+       todos_atendidos.sort(key=lambda x: x.get('fecha_atencion', ''), reverse=True)
+    
+       for p in todos_atendidos[:20]:  # Mostrar solo los últimos 20
+           h_reg = p['fecha_registro'].split(' ')[1][:5]
+           h_aten = p.get('fecha_atencion', '').split(' ')[1][:5] if 'fecha_atencion' in p else ''
+           self.hist_listbox.insert(tk.END, 
+                               f"{p['id']}. {p['nombre']} ({p['consultorio']}) - Reg: {h_reg}, At: {h_aten}")
 
 
     def registrar_paciente(self):
@@ -338,14 +348,14 @@ class ModuloAdmision:
 
         # Botón para exportar CSV
         btn_export = tk.Button(
-           reporte,
-           text="Exportar CSV",
-           command=lambda: self.exportar_csv(self.datos.get('pacientes', [])),
-           font=('Arial', 12),
-           bg='#4CAF50',
-           fg='white',
-           padx=10,
-           pady=5
+            reporte,
+            text="Exportar CSV",
+            command=lambda: self.exportar_csv(self.datos.get('pacientes', [])),
+            font=('Arial', 12),
+            bg='#4CAF50',
+            fg='white',
+            padx=10,
+            pady=5
         )
         btn_export.pack(pady=(10, 0))
 
@@ -378,6 +388,34 @@ class ModuloAdmision:
                 )
             )
 
+        # Botón para editar paciente
+        def editar_paciente():
+            # Obtén el ID seleccionado
+            seleccionado = tree.selection()
+            if not seleccionado:
+                messagebox.showwarning("Seleccionar Paciente", "Debe seleccionar un paciente para editar.")
+                return
+
+            item = tree.item(seleccionado)
+            paciente_id = item['values'][0]  # Obtén el ID del paciente seleccionado
+            paciente = next((p for p in self.datos['pacientes'] if p['id'] == paciente_id), None)
+
+            if paciente:
+                # Crear una ventana de edición
+                self.editar_paciente_ventana(paciente)
+
+        editar_button = tk.Button(
+            reporte,
+            text="Editar Paciente",
+            command=editar_paciente,
+            font=('Arial', 12),
+            bg='#FF9800',
+            fg='white',
+            padx=10,
+            pady=5
+        )
+        editar_button.pack(pady=(10, 0))
+
         # Botón para cerrar la ventana
         tk.Button(
             reporte,
@@ -388,8 +426,54 @@ class ModuloAdmision:
             fg='white',
             padx=10,
             pady=5
-       ).pack(pady=(0,10))
-        
+        ).pack(pady=(0,10))
+
+    def editar_paciente_ventana(self, paciente):
+        """Crea una ventana para editar los datos de un paciente específico."""
+        ventana_editar = tk.Toplevel(self.root)
+        ventana_editar.title(f"Editar Paciente {paciente['id']}")
+        ventana_editar.geometry("400x300")
+        ventana_editar.configure(bg='#f0f8ff')
+
+        # Campo de nombre
+        tk.Label(ventana_editar, text="Nombre del Paciente:", bg='#f0f8ff').pack(pady=5)
+        nombre_entry = tk.Entry(ventana_editar)
+        nombre_entry.insert(0, paciente['nombre'])
+        nombre_entry.pack(pady=5)
+
+        # ComboBox de especialidad
+        tk.Label(ventana_editar, text="Especialidad:", bg='#f0f8ff').pack(pady=5)
+        especialidad_entry = ttk.Combobox(ventana_editar, state="readonly", width=40)
+        especialidades = [esp['nombre'] for esp in self.datos['especialidades']]
+        especialidad_entry['values'] = especialidades
+        especialidad_entry.set(paciente['especialidad'])  # Establecer la especialidad actual del paciente
+        especialidad_entry.pack(pady=5)
+
+        # ComboBox de consultorio
+        tk.Label(ventana_editar, text="Consultorio:", bg='#f0f8ff').pack(pady=5)
+        consultorio_entry = ttk.Combobox(ventana_editar, state="readonly", width=40)
+        consultorios = [f"Consultorio {i}" for i in range(1, 15)]  # Consultorios de 1 a 14
+        consultorio_entry['values'] = consultorios
+        consultorio_entry.set(paciente['consultorio'])  # Establecer el consultorio actual del paciente
+        consultorio_entry.pack(pady=5)
+
+        # Botón para guardar cambios
+        def guardar_cambios():
+            paciente['nombre'] = nombre_entry.get()
+            paciente['especialidad'] = especialidad_entry.get()
+            paciente['consultorio'] = consultorio_entry.get()
+
+            # Guardar los cambios en el archivo
+            if guardar_datos(self.archivo_datos, self.datos):
+                messagebox.showinfo("Éxito", "Paciente editado con éxito.", parent=ventana_editar)
+                ventana_editar.destroy()
+                self.actualizar_listas()
+
+        tk.Button(ventana_editar, text="Guardar Cambios", command=guardar_cambios, bg='#4CAF50', fg='white').pack(pady=20)
+
+        # Botón para cerrar la ventana de edición
+        tk.Button(ventana_editar, text="Cerrar", command=ventana_editar.destroy, bg='#f44336', fg='white').pack(pady=5)
+
     def exportar_csv(self, pacientes):
         filepath = filedialog.asksaveasfilename(
             defaultextension=".csv",
@@ -429,3 +513,4 @@ class ModuloAdmision:
 if __name__ == "__main__":
     app = ModuloAdmision()
     app.run()
+

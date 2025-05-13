@@ -203,7 +203,7 @@ class SalaEspera:
             print(f"Error al verificar cambios: {e}")
             self.root.after(3000, self._verificar_cambios)
 
-    def _play_audio(self, texto):
+    """def _play_audio(self, texto):
         try:
             # Limitar la longitud del texto para TTS
             if len(texto) > 200:
@@ -222,7 +222,36 @@ class SalaEspera:
             os.remove(temp_file)
         except Exception as e:
             print(f"Error en reproducción de audio: {e}")
-            winsound.Beep(1000, 500)
+            winsound.Beep(1000, 500)"""
+    
+    def _play_audio(self, texto):
+       try:
+           # Limitar la longitud del texto para TTS
+           max_length = 200  # Limite máximo de caracteres por segmento
+           if len(texto) > max_length:
+               # Divide el texto en fragmentos de longitud adecuada
+               texto_fragments = [texto[i:i+max_length] for i in range(0, len(texto), max_length)]
+           else:
+               texto_fragments = [texto]
+        
+               # Reproduce cada fragmento de texto por separado
+           for fragment in texto_fragments:
+               pygame.mixer.quit()
+               pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+               temp_file = f"temp_audio_{int(time.time())}.mp3"
+               tts = gTTS(text=fragment, lang='es', slow=False)
+               tts.save(temp_file)
+               pygame.mixer.music.load(temp_file)
+               pygame.mixer.music.play()
+               while pygame.mixer.music.get_busy():  # Esperar a que termine la reproducción
+                  pygame.time.Clock().tick(10)
+               pygame.mixer.music.unload()
+               os.remove(temp_file)  # Eliminar el archivo temporal después de reproducirlo
+
+       except Exception as e:
+           print(f"Error en reproducción de audio: {e}")
+           winsound.Beep(1000, 500)
+
 
     def run(self):
         self.root.mainloop()

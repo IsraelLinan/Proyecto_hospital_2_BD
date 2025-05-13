@@ -76,7 +76,8 @@ class ModuloConsultorio:
         # Listas: espera + historial
         lf = tk.Frame(self.root, bg='#f0f0f0')
         lf.pack(expand=True, fill=tk.BOTH, padx=20, pady=10)
-        # Espera
+        
+        # Panel de Espera (sin scrollbar)
         wf = tk.Frame(lf, bd=2, relief=tk.GROOVE, bg='#ffffff')
         wf.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=5)
         tk.Label(wf, text="Pacientes en Espera", font=('Arial',12,'bold'),
@@ -84,18 +85,25 @@ class ModuloConsultorio:
         self.wait_listbox = tk.Listbox(wf, font=('Arial',12), selectbackground='#e0e0e0',
                                       width=40, height=20)
         self.wait_listbox.pack(expand=True, fill='both', padx=5, pady=5)
-        tk.Scrollbar(wf, command=self.wait_listbox.yview).pack(side=tk.RIGHT, fill=tk.Y)
-        self.wait_listbox.config(yscrollcommand=lambda *args: None)
-        # Historial
+        
+        # Panel de Historial (con scrollbar)
         hf = tk.Frame(lf, bd=2, relief=tk.GROOVE, bg='#ffffff')
         hf.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=5)
         tk.Label(hf, text="Historial de Hoy", font=('Arial',12,'bold'),
                  bg='#ffffff').pack(pady=5)
-        self.hist_listbox = tk.Listbox(hf, font=('Arial',12), selectbackground='#e0e0e0',
+        
+        # Frame para el listbox y scrollbar
+        hf_inner = tk.Frame(hf, bg='#ffffff')
+        hf_inner.pack(expand=True, fill='both', padx=5, pady=5)
+        
+        self.hist_listbox = tk.Listbox(hf_inner, font=('Arial',12), selectbackground='#e0e0e0',
                                       width=40, height=20)
-        self.hist_listbox.pack(expand=True, fill='both', padx=5, pady=5)
-        tk.Scrollbar(hf, command=self.hist_listbox.yview).pack(side=tk.RIGHT, fill=tk.Y)
-        self.hist_listbox.config(yscrollcommand=lambda *args: None)
+        scrollbar = tk.Scrollbar(hf_inner, command=self.hist_listbox.yview)
+        
+        self.hist_listbox.pack(side=tk.LEFT, expand=True, fill='both')
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.hist_listbox.config(yscrollcommand=scrollbar.set)
 
     def setup_hotkeys(self):
         keyboard.add_hotkey('F2', self.llamar_siguiente)

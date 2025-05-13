@@ -4,7 +4,7 @@
             "id": 1,
             "nombre": "israel linan",
             "especialidad": "Traumatolog\u00eda",
-            "consultorio": "Consultorio 1",
+            "consultorio": "Consultorio 2",
             "fecha_registro": "2025-05-05 22:29:34",
             "atendido": true,
             "fecha_atencion": "2025-05-05 22:30:27"
@@ -12,8 +12,8 @@
         {
             "id": 2,
             "nombre": "ruth linan",
-            "especialidad": "Traumatolog\u00eda",
-            "consultorio": "Consultorio 1",
+            "especialidad": "Cirugia",
+            "consultorio": "Consultorio 3",
             "fecha_registro": "2025-05-05 22:29:45",
             "atendido": true,
             "fecha_atencion": "2025-05-05 22:30:43"
@@ -48,8 +48,8 @@
         {
             "id": 6,
             "nombre": "juan perez",
-            "especialidad": "Traumatolog\u00eda",
-            "consultorio": "Consultorio 1",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
             "fecha_registro": "2025-05-05 22:33:49",
             "atendido": true,
             "fecha_atencion": "2025-05-05 22:40:03"
@@ -66,8 +66,8 @@
         {
             "id": 8,
             "nombre": "COCO MARUSIX",
-            "especialidad": "Cirug\u00eda",
-            "consultorio": "Consultorio 3",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
             "fecha_registro": "2025-05-05 22:34:26",
             "atendido": true,
             "fecha_atencion": "2025-05-05 22:38:47"
@@ -75,8 +75,8 @@
         {
             "id": 9,
             "nombre": "FLAVIA LAOS",
-            "especialidad": "Cirug\u00eda",
-            "consultorio": "Consultorio 3",
+            "especialidad": "Internista",
+            "consultorio": "Consultorio 2",
             "fecha_registro": "2025-05-05 22:34:34",
             "atendido": true,
             "fecha_atencion": "2025-05-05 22:39:04"
@@ -120,8 +120,8 @@
         {
             "id": 14,
             "nombre": "Fermin Galarga",
-            "especialidad": "Obstetricia 2",
-            "consultorio": "Consultorio 12",
+            "especialidad": "Obstetricia 1",
+            "consultorio": "Consultorio 11",
             "fecha_registro": "2025-05-05 22:45:09",
             "atendido": true,
             "fecha_atencion": "2025-05-05 22:47:36"
