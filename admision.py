@@ -6,19 +6,19 @@ import threading
 import time
 from hospital_lib import (
     cargar_datos, 
-    guardar_datos, 
     cargar_logo,
+    guardar_paciente,
+    actualizar_paciente,
     validar_nombre_paciente,
     obtener_consultorio_especialidad,
-    obtener_especialidad_consultorio
+    obtener_especialidad_consultorio,
 )
 
 class ModuloAdmision:
     def __init__(self):
-        self.archivo_datos = 'datos_hospital.json' #r'\\192.168.10.220\cita_medicas_hap\datos_hospital.json'  
         try:
-            # Leer los datos una sola vez al inicio
-            self.datos = cargar_datos(self.archivo_datos)  
+            # Leer los datos una sola vez al inicio desde PostgreSQL
+            self.datos = cargar_datos()  # Ahora obtiene los datos desde PostgreSQL
             self.setup_ui()
 
             # Iniciar la sincronización periódica en un hilo separado
@@ -145,8 +145,8 @@ class ModuloAdmision:
         """Sincroniza los datos de manera periódica, actualizando la copia local de los datos."""
         while True:
             try:
-                # Cargar los datos más recientes del archivo JSON
-                nuevos_datos = cargar_datos(self.archivo_datos)
+                # Cargar los datos más recientes desde PostgreSQL
+                nuevos_datos = cargar_datos()
 
                 # Comparar si los datos han cambiado
                 if nuevos_datos != self.datos:  # Si los datos han cambiado
@@ -221,11 +221,11 @@ class ModuloAdmision:
 
 
     def registrar_paciente(self):
-        nombre = self.nombre_entry.get()
+        nombre = self.nombre_entry.get().strip()
         valido, mensaje = validar_nombre_paciente(nombre)
         if not valido:
-            messagebox.showerror("Error", mensaje, parent=self.root)
-            return
+           messagebox.showerror("Error", mensaje, parent=self.root)
+           return
 
         especialidad = self.especialidad_var.get()
         if not especialidad:
@@ -234,45 +234,32 @@ class ModuloAdmision:
 
         consultorio = self.consultorio_var.get()
         if not consultorio:
-            messagebox.showerror("Error", "Debe seleccionar un consultorio", parent=self.root)
-            return
+           messagebox.showerror("Error", "Debe seleccionar un consultorio", parent=self.root)
+           return
 
         try:
-            hoy = datetime.now().strftime("%Y-%m-%d")
-            existe_paciente = any(
-                p['nombre'].lower() == nombre.lower() and
-                p['fecha_registro'].startswith(hoy) and
-                not p['atendido']
-                for p in self.datos['pacientes']
-            )
-
-            if existe_paciente:
-                messagebox.showwarning("Advertencia", 
-                                    "Este paciente ya tiene un turno pendiente para hoy", 
-                                    parent=self.root)
-                return
-
-            nuevo_id = max([p['id'] for p in self.datos['pacientes']], default=0) + 1
-            nuevo_paciente = {
-                'id': nuevo_id,
+            # Registrar nuevo paciente directamente en la base de datos
+            paciente_id = guardar_paciente(nombre, especialidad, consultorio)
+        
+            # Actualizar los datos locales
+            self.datos = cargar_datos()
+        
+            self.info_label.config(text=f"Paciente registrado con éxito. Turno: {paciente_id}")
+            self.nombre_entry.delete(0, tk.END)
+        
+            # Mostrar ticket
+            paciente = {
+                'id': paciente_id,
                 'nombre': nombre,
                 'especialidad': especialidad,
                 'consultorio': consultorio,
-                'fecha_registro': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'atendido': False
+                'fecha_registro': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
-
-            # Actualizar los datos en memoria
-            self.datos['pacientes'].append(nuevo_paciente)
-
-            # Solo guardar los datos cuando sea necesario (al cerrar o después de una operación importante)
-            if guardar_datos(self.archivo_datos, self.datos):
-                self.info_label.config(text=f"Paciente registrado con éxito. Turno: {nuevo_paciente['id']}")
-                self.nombre_entry.delete(0, tk.END)
-                self.mostrar_dialogo_ticket(nuevo_paciente)
+            self.mostrar_dialogo_ticket(paciente)
 
         except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un error inesperado: {str(e)}", parent=self.root)
+           messagebox.showerror("Error", f"No se pudo registrar el paciente: {str(e)}", parent=self.root)
+
 
     def mostrar_dialogo_ticket(self, paciente):
         """Muestra un diálogo con la información del paciente y un botón para imprimir el ticket."""
@@ -457,21 +444,24 @@ class ModuloAdmision:
         consultorio_entry.set(paciente['consultorio'])  # Establecer el consultorio actual del paciente
         consultorio_entry.pack(pady=5)
 
-        # Botón para guardar cambios
         def guardar_cambios():
-            paciente['nombre'] = nombre_entry.get()
-            paciente['especialidad'] = especialidad_entry.get()
-            paciente['consultorio'] = consultorio_entry.get()
+            paciente_id = paciente['id']
+            nuevo_nombre = nombre_entry.get()
+            nueva_especialidad = especialidad_entry.get()
+            nuevo_consultorio = consultorio_entry.get()
 
-            # Guardar los cambios en el archivo
-            if guardar_datos(self.archivo_datos, self.datos):
+            try:
+                actualizar_paciente(paciente_id, nuevo_nombre, nueva_especialidad, nuevo_consultorio)
                 messagebox.showinfo("Éxito", "Paciente editado con éxito.", parent=ventana_editar)
                 ventana_editar.destroy()
+                # Recargar datos y actualizar listas
+                self.datos = cargar_datos()
                 self.actualizar_listas()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo actualizar el paciente: {e}", parent=ventana_editar)
 
         tk.Button(ventana_editar, text="Guardar Cambios", command=guardar_cambios, bg='#4CAF50', fg='white').pack(pady=20)
 
-        # Botón para cerrar la ventana de edición
         tk.Button(ventana_editar, text="Cerrar", command=ventana_editar.destroy, bg='#f44336', fg='white').pack(pady=5)
 
     def exportar_csv(self, pacientes):
@@ -486,13 +476,11 @@ class ModuloAdmision:
         try:
            with open(filepath, 'w', newline='', encoding='utf-8') as f:
                writer = csv.writer(f)
-               # Cabecera
                writer.writerow([
                   "ID", "Nombre", "Especialidad",
                   "Consultorio", "Fecha Registro",
                   "Atendido", "Fecha Atención"
                ])
-               # Filas
                for p in pacientes:
                    writer.writerow([
                        p.get("id", ""),
@@ -513,4 +501,7 @@ class ModuloAdmision:
 if __name__ == "__main__":
     app = ModuloAdmision()
     app.run()
+
+
+
 
