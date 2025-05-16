@@ -58,20 +58,64 @@ class SalaEspera:
     def _initialize_audio_system(self):
         """Inicializa el sistema de audio con múltiples intentos"""
         try:
-            # Intento 1: Pygame Mixer
             pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=2048)
             if not pygame.mixer.get_init():
-                raise Exception("Mixer no se inicializó correctamente")
+               raise Exception("Mixer no se inicializó correctamente")
             print("Sistema de audio pygame inicializado correctamente")
         except Exception as e:
             print(f"Error al inicializar pygame mixer: {e}")
             try:
-                # Intento 2: Winsound como respaldo
-                winsound.Beep(1000, 100)
-                print("Usando winsound como respaldo de audio")
-            except:
-                print("Sistema de audio completamente deshabilitado")
-                self.audio_enabled = False
+               winsound.Beep(1000, 100)
+               print("Usando winsound como respaldo de audio")
+            except Exception as e2:
+              print(f"Error usando winsound: {e2}")
+              print("Sistema de audio completamente deshabilitado")
+              self.audio_enabled = False
+
+    def _execute_audio_playback(self, texto):
+        """Ejecuta la reproducción de audio en un hilo separado"""
+        try:
+            print(f"Generando audio para texto: {texto}")
+
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
+               temp_path = tmp.name
+            print(f"Archivo temporal para audio: {temp_path}")
+
+            tts = gTTS(text=texto, lang='es', slow=False)
+            tts.save(temp_path)
+            print("Archivo de audio generado con éxito")
+
+            if not os.path.exists(temp_path):
+               print("Error: archivo de audio temporal no existe después de guardar")
+               return
+
+            if pygame.mixer.get_init():
+               sound = pygame.mixer.Sound(temp_path)
+               print("Reproduciendo audio con pygame...")
+               sound.play()
+
+               while pygame.mixer.get_busy():
+                   time.sleep(0.1)
+               print("Reproducción finalizada")
+
+            else:
+               print("Pygame mixer no está inicializado, usando winsound")
+               winsound.Beep(1000, 500)
+               time.sleep(0.3)
+               winsound.Beep(1500, 500)
+
+        except Exception as e:
+           print(f"Error en reproducción de audio: {e}")
+           print(f"MENSAJE DE VOZ (no se pudo reproducir): {texto}")
+
+        finally:
+            try:
+                if os.path.exists(temp_path):
+                     os.remove(temp_path)
+                     print("Archivo temporal eliminado")
+            except Exception as e:
+              print(f"Error al eliminar archivo temporal: {e}")
+
 
     def _setup_ui(self):
         """Configura la interfaz gráfica de usuario"""
@@ -196,29 +240,35 @@ class SalaEspera:
             self.txt_atencion.insert(tk.END, "Error al cargar datos")
 
     def _verificar_cambios(self):
-        """Verifica periódicamente si hay cambios en los datos"""
         try:
             nuevos_datos = cargar_datos()
+            print(f"Datos cargados: {nuevos_datos}")
+            print(f"ultimo_llamado actual: {self.ultimo_llamado}")
+            print(f"ultimo_llamado en datos: {nuevos_datos.get('ultimo_llamado')}")
 
-            # Verificar si hay un nuevo llamado
-            if 'ultimo_llamado' in nuevos_datos and nuevos_datos['ultimo_llamado']:
-                if nuevos_datos['ultimo_llamado'].startswith("RELLAMADO_"):
-                    mensaje = nuevos_datos['ultimo_llamado'].split('_',1)[1]
-                    self._play_audio(mensaje)
-                elif self.ultimo_llamado != nuevos_datos['ultimo_llamado']:
-                    self._play_audio(nuevos_datos['ultimo_llamado'])
-                
-                self.ultimo_llamado = nuevos_datos['ultimo_llamado']
+            nuevo_llamado = nuevos_datos.get('ultimo_llamado')
+
+            if nuevo_llamado:
+                if nuevo_llamado.startswith("RELLAMADO_"):
+                   mensaje = nuevo_llamado.split('_',1)[1]
+                   self._play_audio(mensaje)
+                elif self.ultimo_llamado != nuevo_llamado:
+                   self._play_audio(nuevo_llamado)
+
+                self.ultimo_llamado = nuevo_llamado
 
             self.datos = nuevos_datos
             self._cargar_listas()
             self.root.after(3000, self._verificar_cambios)
+
         except Exception as e:
             print(f"Error al verificar cambios: {e}")
             self.root.after(3000, self._verificar_cambios)
 
+
     def _play_audio(self, texto):
         """Reproduce el audio del mensaje"""
+        print(f"_play_audio llamado con texto: {texto}")
         if not self.audio_enabled:
             print("Audio deshabilitado, no se reproducirá el mensaje")
             return
@@ -252,8 +302,10 @@ class SalaEspera:
                     
                     # Reproducir audio
                     sound = pygame.mixer.Sound(temp_path)
+                    sound.set_volume(1.0)
                     sound.play()
-                    
+                    print("Audio iniciado, esperando a que termine...")
+
                     # Esperar a que termine la reproducción
                     while pygame.mixer.get_busy():
                         time.sleep(0.1)

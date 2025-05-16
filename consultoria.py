@@ -9,6 +9,7 @@ from hospital_lib import (
     obtener_especialidad_consultorio,
     obtener_pacientes_espera_consultorio,
     obtener_historial_atencion_consultorio,
+    guardar_ultimo_llamado,
 )
 
 class ModuloConsultorio:
@@ -105,6 +106,10 @@ class ModuloConsultorio:
             
             self.status_label.config(text="OCUPADO", fg='red')
             self.paciente_label.config(text=f"Paciente: {paciente['nombre']} (Turno {paciente['id']})")
+            
+             # Guardar el mensaje para que lo tome sala_espera.py
+            mensaje = f"Paciente {paciente['nombre']}, favor pasar al {paciente['consultorio']}"
+            guardar_ultimo_llamado(mensaje)
         
             self.datos = cargar_datos()
             self.actualizar_listas()

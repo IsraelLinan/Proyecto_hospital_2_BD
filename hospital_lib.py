@@ -60,10 +60,19 @@ def cargar_datos():
                 ORDER BY p.fecha_registro
             """)
             pacientes = cursor.fetchall()
+            
+            # Nuevo: obtener el último llamado desde alguna tabla o configuración
+            cursor.execute("""
+                SELECT mensaje FROM ultimos_llamados ORDER BY fecha DESC LIMIT 1
+            """)
+            ultimo = cursor.fetchone()
+            ultimo_llamado = ultimo['mensaje'] if ultimo else None
+
 
         return {
             'especialidades': especialidades,
-            'pacientes': pacientes
+            'pacientes': pacientes,
+            'ultimo_llamado': ultimo_llamado
         }
     except Exception as e:
         print(f"Error al cargar datos: {e}")
@@ -71,6 +80,41 @@ def cargar_datos():
     finally:
         if conexion:
             liberar_conexion(conexion)
+
+def guardar_ultimo_llamado(mensaje):
+    conexion = None
+    try:
+        conexion = obtener_conexion()
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO ultimos_llamados (mensaje) VALUES (%s)
+            """, (mensaje,))
+            conexion.commit()
+    except Exception as e:
+        if conexion:
+            conexion.rollback()
+        print(f"Error al guardar último llamado: {e}")
+        raise
+    finally:
+        if conexion:
+            liberar_conexion(conexion)
+            
+def limpiar_ultimo_llamado():
+    conexion = None
+    try:
+        conexion = obtener_conexion()
+        with conexion.cursor() as cursor:
+            cursor.execute("DELETE FROM ultimos_llamados")
+            conexion.commit()
+    except Exception as e:
+        if conexion:
+            conexion.rollback()
+        print(f"Error al limpiar último llamado: {e}")
+        raise
+    finally:
+        if conexion:
+            liberar_conexion(conexion)
+
 
 def guardar_paciente(nombre, especialidad_nombre, consultorio):
     conexion = None
