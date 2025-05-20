@@ -52,21 +52,19 @@ class ModuloAdmision:
         self.nombre_entry.grid(row=0, column=1, sticky="ew", padx=5)
         self.nombre_entry.focus()
 
+        # Especialidades: Entry readonly que abre popup al click
         tb.Label(form_frame, text="Especialidad Médica:", font=("Segoe UI", 12)).grid(row=1, column=0, sticky="w", pady=8, padx=5)
         self.especialidad_var = StringVar()
-        self.especialidad_combo = tb.Combobox(form_frame, textvariable=self.especialidad_var, values=self.especialidades, state="readonly", bootstyle="secondary")
-        self.especialidad_combo.grid(row=1, column=1, sticky="ew", padx=5)
+        self.especialidad_entry = tb.Entry(form_frame, textvariable=self.especialidad_var, state="readonly", bootstyle="secondary")
+        self.especialidad_entry.grid(row=1, column=1, sticky="ew", padx=5)
+        self.especialidad_entry.bind("<Button-1>", lambda e: self.abrir_popup_especialidades())
 
-        btn_add_esp = tb.Button(form_frame, text="+", width=3, bootstyle="info-outline", command=self.abrir_popup_especialidades)
-        btn_add_esp.grid(row=1, column=2, sticky="w")
-
+        # Consultorios: Entry readonly que abre popup al click
         tb.Label(form_frame, text="Consultorio:", font=("Segoe UI", 12)).grid(row=2, column=0, sticky="w", pady=8, padx=5)
         self.consultorio_var = StringVar()
-        self.consultorio_combo = tb.Combobox(form_frame, textvariable=self.consultorio_var, values=self.consultorios, state="readonly", bootstyle="secondary")
-        self.consultorio_combo.grid(row=2, column=1, sticky="ew", padx=5)
-
-        btn_add_cons = tb.Button(form_frame, text="+", width=3, bootstyle="info-outline", command=self.abrir_popup_consultorios)
-        btn_add_cons.grid(row=2, column=2, sticky="w")
+        self.consultorio_entry = tb.Entry(form_frame, textvariable=self.consultorio_var, state="readonly", bootstyle="secondary")
+        self.consultorio_entry.grid(row=2, column=1, sticky="ew", padx=5)
+        self.consultorio_entry.bind("<Button-1>", lambda e: self.abrir_popup_consultorios())
 
         form_frame.columnconfigure(1, weight=1)
 
@@ -376,6 +374,7 @@ class ModuloAdmision:
 if __name__ == "__main__":
     app = ModuloAdmision()
     app.run()
+
 
 
 
