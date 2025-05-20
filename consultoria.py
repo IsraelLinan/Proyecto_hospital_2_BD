@@ -1,12 +1,13 @@
-import tkinter as tk
-from tkinter import simpledialog, messagebox, ttk
-import keyboard
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
+from tkinter import messagebox, ttk
 from datetime import datetime
+import threading
+import time
 from hospital_lib import (
     cargar_datos,
     cargar_logo,
     llamar_siguiente_paciente,
-    obtener_especialidad_consultorio,
     obtener_pacientes_espera_consultorio,
     obtener_historial_atencion_consultorio,
     guardar_ultimo_llamado,
@@ -22,161 +23,189 @@ class ModuloConsultorio:
             self.consultorio_id = str(consultorio_id)
             self.datos = cargar_datos()
 
-            especialidad = obtener_especialidad_consultorio(self.datos, self.consultorio_id)
-            if not especialidad:
-                raise ValueError(f"Consultorio {self.consultorio_id} no está configurado")
+            # Intentamos obtener especialidad para mostrar (opcional)
+            try:
+                self.especialidad = next(
+                    esp['nombre'] for esp in self.datos['especialidades'] 
+                    if esp['consultorio'] == f"Consultorio {consultorio_id}"
+                )
+            except StopIteration:
+                self.especialidad = None
+
+            self.app = tb.Window(themename="flatly")
+            self.app.title(f"Consultorio {self.consultorio_id} - Hospital de Apoyo Palpa")
+            self.app.geometry("1000x700")
 
             self.setup_ui()
             self.setup_hotkeys()
-            self.actualizar_listas()
-            self.refresh_data()
+            self.refresh_data_thread()
 
         except Exception as e:
             messagebox.showerror("Error de Inicialización", f"No se pudo iniciar el módulo: {e}")
             raise
 
     def setup_ui(self):
-        self.root = tk.Tk()
-        self.root.title(f"Consultorio {self.consultorio_id} - Hospital de Apoyo Palpa")
-        self.root.geometry("1000x700")
-        self.root.configure(bg='#f0f0f0')
+        header = tb.Frame(self.app, padding=10)
+        header.pack(fill="x")
 
-        header = tk.Frame(self.root, bg='#f0f0f0')
-        header.pack(fill=tk.X, pady=(10,0))
         logo_lbl = cargar_logo(header)
-        logo_lbl.pack(side=tk.LEFT, padx=10)
-        tk.Label(header, text=f"Consultorio {self.consultorio_id}", font=('Arial', 16, 'bold'), bg='#f0f0f0').pack(side=tk.LEFT)
+        logo_lbl.pack(side="left", padx=10)
 
-        sf = tk.Frame(self.root, bd=2, relief=tk.GROOVE, padx=10, pady=10, bg='#ffffff')
-        sf.pack(fill=tk.X, padx=20, pady=10)
-        tk.Label(sf, text="Estado actual:", font=('Arial', 12), bg='#ffffff').pack(side=tk.LEFT)
-        self.status_label = tk.Label(sf, text="LIBRE", font=('Arial', 14, 'bold'), fg='green', bg='#ffffff')
-        self.status_label.pack(side=tk.LEFT, padx=10)
-        self.paciente_label = tk.Label(sf, text="", font=('Arial', 12), bg='#ffffff')
-        self.paciente_label.pack(side=tk.LEFT, expand=True)
+        tb.Label(header, text=f"Consultorio {self.consultorio_id}", font=('Segoe UI', 18, 'bold')).pack(side="left")
 
-        bf = tk.Frame(self.root, bg='#f0f0f0')
-        bf.pack(pady=15)
-        tk.Button(bf, text="Llamar Siguiente (F2)", command=self.llamar_siguiente,
-                  width=20, bg='#4CAF50', fg='white').pack(side=tk.LEFT, padx=5)
-        tk.Button(bf, text="Re-llamar Actual (F4)", command=self.re_llamar_paciente,
-                  width=20, bg='#2196F3', fg='white').pack(side=tk.LEFT, padx=5)
+        status_frame = tb.Frame(self.app, padding=10, bootstyle="info")
+        status_frame.pack(fill="x", padx=20, pady=10)
 
-        lf = tk.Frame(self.root, bg='#f0f0f0')
-        lf.pack(expand=True, fill=tk.BOTH, padx=20, pady=10)
+        tb.Label(status_frame, text="Estado actual:", font=('Segoe UI', 14)).pack(side="left")
+        self.status_label = tb.Label(status_frame, text="LIBRE", font=('Segoe UI', 16, 'bold'), bootstyle="success")
+        self.status_label.pack(side="left", padx=10)
 
-        wf = tk.Frame(lf, bd=2, relief=tk.GROOVE, bg='#ffffff')
-        wf.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=5)
-        tk.Label(wf, text="Pacientes en Espera", font=('Arial',12,'bold'), bg='#ffffff').pack(pady=5)
-        self.wait_listbox = tk.Listbox(wf, font=('Arial',12), selectbackground='#e0e0e0', width=40, height=20)
-        self.wait_listbox.pack(expand=True, fill='both', padx=5, pady=5)
+        self.paciente_label = tb.Label(status_frame, text="", font=('Segoe UI', 14))
+        self.paciente_label.pack(side="left", expand=True)
 
-        hf = tk.Frame(lf, bd=2, relief=tk.GROOVE, bg='#ffffff')
-        hf.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=5)
-        tk.Label(hf, text="Historial de Hoy", font=('Arial',12,'bold'), bg='#ffffff').pack(pady=5)
+        btn_frame = tb.Frame(self.app, padding=10)
+        btn_frame.pack()
 
-        hf_inner = tk.Frame(hf, bg='#ffffff')
-        hf_inner.pack(expand=True, fill='both', padx=5, pady=5)
+        self.btn_llamar = tb.Button(btn_frame, text="Llamar Siguiente (F2)", bootstyle="success-outline", width=20, command=self.llamar_siguiente)
+        self.btn_llamar.pack(side="left", padx=5)
 
-        self.hist_listbox = tk.Listbox(hf_inner, font=('Arial',12), selectbackground='#e0e0e0', width=40, height=20)
-        scrollbar = tk.Scrollbar(hf_inner, command=self.hist_listbox.yview)
+        self.btn_rellamar = tb.Button(btn_frame, text="Re-llamar Actual (F4)", bootstyle="primary-outline", width=20, command=self.re_llamar_paciente)
+        self.btn_rellamar.pack(side="left", padx=5)
 
-        self.hist_listbox.pack(side=tk.LEFT, expand=True, fill='both')
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        lists_frame = tb.Frame(self.app, padding=10)
+        lists_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        self.hist_listbox.config(yscrollcommand=scrollbar.set)
+        # Pacientes en espera
+        espera_frame = tb.Labelframe(lists_frame, text="Pacientes en Espera", bootstyle="secondary")
+        espera_frame.pack(side="left", fill="both", expand=True, padx=5)
+
+        self.wait_tree = ttk.Treeview(espera_frame, columns=("ID", "Nombre", "Hora"), show="headings", selectmode="browse")
+        self.wait_tree.heading("ID", text="ID")
+        self.wait_tree.heading("Nombre", text="Nombre")
+        self.wait_tree.heading("Hora", text="Hora")
+        self.wait_tree.column("ID", width=40, anchor="center")
+        self.wait_tree.column("Nombre", width=200)
+        self.wait_tree.column("Hora", width=70, anchor="center")
+        self.wait_tree.pack(fill="both", expand=True, side="left")
+
+        scrollbar_wait = tb.Scrollbar(espera_frame, command=self.wait_tree.yview, bootstyle="secondary")
+        scrollbar_wait.pack(side="right", fill="y")
+        self.wait_tree.configure(yscrollcommand=scrollbar_wait.set)
+
+        # Historial de hoy
+        hist_frame = tb.Labelframe(lists_frame, text="Historial de Hoy", bootstyle="secondary")
+        hist_frame.pack(side="left", fill="both", expand=True, padx=5)
+
+        self.hist_tree = ttk.Treeview(hist_frame, columns=("ID", "Nombre", "Hora"), show="headings", selectmode="browse")
+        self.hist_tree.heading("ID", text="ID")
+        self.hist_tree.heading("Nombre", text="Nombre")
+        self.hist_tree.heading("Hora", text="Hora")
+        self.hist_tree.column("ID", width=40, anchor="center")
+        self.hist_tree.column("Nombre", width=200)
+        self.hist_tree.column("Hora", width=70, anchor="center")
+        self.hist_tree.pack(fill="both", expand=True, side="left")
+
+        scrollbar_hist = tb.Scrollbar(hist_frame, command=self.hist_tree.yview, bootstyle="secondary")
+        scrollbar_hist.pack(side="right", fill="y")
+        self.hist_tree.configure(yscrollcommand=scrollbar_hist.set)
 
     def setup_hotkeys(self):
-        import keyboard
-        keyboard.add_hotkey('F2', self.llamar_siguiente)
-        keyboard.add_hotkey('F4', self.re_llamar_paciente)
-
-    def obtener_pacientes_espera(self):
-        return obtener_pacientes_espera_consultorio(self.consultorio_id)
-
-    def obtener_historial_atencion(self):
-        return obtener_historial_atencion_consultorio(self.consultorio_id)
+        self.app.bind('<F2>', lambda e: self.llamar_siguiente())
+        self.app.bind('<F4>', lambda e: self.re_llamar_paciente())
 
     def llamar_siguiente(self):
         try:
             paciente = llamar_siguiente_paciente(self.consultorio_id)
             if not paciente:
-               messagebox.showinfo("Info", "No hay pacientes en espera para este consultorio")
-               return
-            
-            self.status_label.config(text="OCUPADO", fg='red')
-            self.paciente_label.config(text=f"Paciente: {paciente['nombre']} (Turno {paciente['id']})")
-            
-             # Guardar el mensaje para que lo tome sala_espera.py
-            mensaje = f"Paciente {paciente['nombre']}, favor pasar al {paciente['consultorio']}"
+                messagebox.showinfo("Info", "No hay pacientes en espera para este consultorio", parent=self.app)
+                self.status_label.config(text="LIBRE", bootstyle="success")
+                self.paciente_label.config(text="")
+                return
+
+            self.status_label.config(text="OCUPADO", bootstyle="danger")
+            nombre = paciente.get('nombre', '')
+            consultorio = paciente.get('consultorio', f"Consultorio {self.consultorio_id}")
+            self.paciente_label.config(text=f"Paciente: {nombre} ({consultorio})")
+
+            mensaje = f"Paciente {nombre}, favor pasar al {consultorio}"
             guardar_ultimo_llamado(mensaje)
-        
+
             self.datos = cargar_datos()
             self.actualizar_listas()
-        
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo llamar al paciente: {e}")
-            
+            messagebox.showerror("Error", f"No se pudo llamar al paciente: {e}", parent=self.app)
+
     def re_llamar_paciente(self):
         try:
-            hist = self.obtener_historial_atencion()
+            hist = obtener_historial_atencion_consultorio(self.consultorio_id)
             if not hist:
-                messagebox.showinfo("Info", "No hay historial de atenciones para re-llamar")
+                messagebox.showinfo("Info", "No hay historial de atenciones para re-llamar", parent=self.app)
                 return
-            hist_sorted = sorted(hist, key=lambda x: x.get('fecha_atencion', ''), reverse=True)
-            ultimo = hist_sorted[0]
+            ultimo = sorted(hist, key=lambda x: x.get('fecha_atencion', ''), reverse=True)[0]
             mensaje = f"RELLAMADO_Paciente {ultimo['nombre']}, favor pasar al consultorio {self.consultorio_id}"
-            messagebox.showinfo("Re-llamar Paciente", f"Paciente: {ultimo['nombre']}\nConsultorio: {self.consultorio_id}")
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo re-llamar al paciente: {e}")
+            messagebox.showinfo("Re-llamar Paciente", f"Paciente: {ultimo['nombre']}\nConsultorio: {self.consultorio_id}", parent=self.app)
+            guardar_ultimo_llamado(mensaje)
 
-    def actualizar_listas(self):
-        self.wait_listbox.delete(0, tk.END)
-        self.hist_listbox.delete(0, tk.END)
-        espera = self.obtener_pacientes_espera()
-        if espera:
-            for p in espera:
-                if isinstance(p['fecha_registro'], datetime):
-                    h = p['fecha_registro'].strftime("%H:%M")
-                else:
-                    h = p['fecha_registro'].split(' ')[1][:5]
-                self.wait_listbox.insert(tk.END, f"{p['id']}. {p['nombre']} ({h})")
-        else:
-            self.wait_listbox.insert(tk.END, "Sin pacientes en espera")
-
-        hist = self.obtener_historial_atencion()
-        if hist:
-            for p in hist:
-                f = p.get('fecha_atencion', '')
-                if isinstance(p.get('fecha_atencion'), datetime):
-                    t = p['fecha_atencion'].strftime("%H:%M")
-                elif isinstance(f, str) and ' ' in f:
-                    t = f.split(' ')[1][:5]
-                else:
-                    t = ''
-                self.hist_listbox.insert(tk.END, f"{p['id']}. {p['nombre']} ({t})")
-        else:
-            self.hist_listbox.insert(tk.END, "Sin historial de hoy")
-
-    def refresh_data(self):
-        try:
             self.datos = cargar_datos()
             self.actualizar_listas()
         except Exception as e:
-            print(f"Error al refrescar datos: {e}")
-        finally:
-            self.root.after(3000, self.refresh_data)
+            messagebox.showerror("Error", f"No se pudo re-llamar al paciente: {e}", parent=self.app)
+
+    def actualizar_listas(self):
+        self.wait_tree.delete(*self.wait_tree.get_children())
+        self.hist_tree.delete(*self.hist_tree.get_children())
+
+        try:
+            espera = obtener_pacientes_espera_consultorio(self.consultorio_id)
+            if espera:
+                for p in espera:
+                    f_reg = p['fecha_registro']
+                    if hasattr(f_reg, 'strftime'):
+                        hora = f_reg.strftime("%H:%M")
+                    elif isinstance(f_reg, str) and ' ' in f_reg:
+                        hora = f_reg.split(' ')[1][:5]
+                    else:
+                        hora = ''
+
+                    self.wait_tree.insert("", "end", values=(p['id'], p['nombre'], hora))
+            else:
+                self.wait_tree.insert("", "end", values=("", "Sin pacientes en espera", ""))
+
+            hist = obtener_historial_atencion_consultorio(self.consultorio_id)
+            if hist:
+                for p in hist:
+                    f_aten = p.get('fecha_atencion')
+                    if hasattr(f_aten, 'strftime'):
+                        hora = f_aten.strftime("%H:%M")
+                    elif isinstance(f_aten, str) and ' ' in f_aten:
+                        hora = f_aten.split(' ')[1][:5]
+                    else:
+                        hora = ''
+
+                    self.hist_tree.insert("", "end", values=(p['id'], p['nombre'], hora))
+            else:
+                self.hist_tree.insert("", "end", values=("", "Sin historial de hoy", ""))
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al actualizar listas: {e}", parent=self.app)
+
+    def refresh_data_thread(self):
+        def refrescar():
+            while True:
+                try:
+                    self.datos = cargar_datos()
+                    self.actualizar_listas()
+                except Exception as e:
+                    print(f"Error al refrescar datos: {e}")
+                time.sleep(3)
+        threading.Thread(target=refrescar, daemon=True).start()
 
     def run(self):
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-        self.root.mainloop()
+        self.app.protocol("WM_DELETE_WINDOW", self.app.destroy)
+        self.app.mainloop()
 
-    def on_close(self):
-        import keyboard
-        keyboard.unhook_all_hotkeys()
-        self.root.destroy()
 
 if __name__ == "__main__":
+    import tkinter.simpledialog as simpledialog
     consultorio_id = simpledialog.askstring("Consultorio", "Ingrese el número (1-14):")
     if consultorio_id:
         try:
@@ -184,6 +213,5 @@ if __name__ == "__main__":
             app.run()
         except Exception as e:
             messagebox.showerror("Error de Inicialización", f"No se pudo iniciar la aplicación: {e}")
-
 
 

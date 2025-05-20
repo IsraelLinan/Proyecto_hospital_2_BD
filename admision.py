@@ -1,506 +1,383 @@
-import tkinter as tk
-from tkinter import messagebox, filedialog, ttk
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
+from tkinter import messagebox, filedialog, ttk, Toplevel, StringVar, BooleanVar
 from datetime import datetime
-import csv
 import threading
 import time
+import csv
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from hospital_lib import (
-    cargar_datos, 
+    cargar_datos,
     cargar_logo,
-    guardar_paciente,
-    actualizar_paciente,
+    guardar_paciente_multiple_especialidades,
     validar_nombre_paciente,
-    obtener_consultorio_especialidad,
-    obtener_especialidad_consultorio,
 )
 
 class ModuloAdmision:
     def __init__(self):
-        try:
-            # Leer los datos una sola vez al inicio desde PostgreSQL
-            self.datos = cargar_datos()  # Ahora obtiene los datos desde PostgreSQL
-            self.setup_ui()
+        self.datos = cargar_datos()
+        self.app = tb.Window(themename="flatly")
+        self.app.title("Sistema de Admisión - Hospital de Apoyo Palpa")
+        self.app.geometry("900x700")
+        self.app.minsize(700, 600)
 
-            # Iniciar la sincronización periódica en un hilo separado
-            threading.Thread(target=self.sincronizar_datos_periodicamente, daemon=True).start()
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo iniciar el módulo: {str(e)}")
-            raise
+        self.especialidades = [esp['nombre'] for esp in self.datos['especialidades']]
+        self.consultorios = [f"Consultorio {i}" for i in range(1, 15)]
+
+        self.seleccion_especialidades = []
+        self.seleccion_consultorios = []
+
+        self.setup_ui()
+        threading.Thread(target=self.sincronizar_datos_periodicamente, daemon=True).start()
 
     def setup_ui(self):
-        self.root = tk.Tk()
-        self.root.title("Sistema de Admisión - Hospital de Apoyo Palpa")
-        self.root.geometry("900x700")
-        self.root.resizable(True, True)
-        self.root.configure(bg='#f0f8ff')
+        main_frame = tb.Frame(self.app, padding=20)
+        main_frame.pack(fill="both", expand=True)
 
-        # Frame para el logo
-        logo_frame = tk.Frame(self.root, bg='#f0f8ff')
-        logo_frame.pack(pady=20)
+        logo_frame = tb.Frame(main_frame)
+        logo_frame.pack(pady=(0,20))
         logo_label = cargar_logo(logo_frame)
         logo_label.pack()
 
-        # Frame principal
-        main_frame = tk.Frame(self.root, padx=40, pady=40, bg='#f0f8ff')
-        main_frame.pack(expand=True)
-        main_frame.grid_rowconfigure(0, weight=1)
-        main_frame.grid_columnconfigure(0, weight=1)
+        tb.Label(main_frame, text="Registro de Pacientes", 
+                 font=("Segoe UI", 20, "bold")).pack(pady=(0,15))
 
-        # Título
-        tk.Label(main_frame,
-                text="REGISTRO DE PACIENTES",
-                font=('Arial', 16, 'bold'),
-                bg='#f0f8ff',
-                fg='#0066cc').grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        form_frame = tb.Frame(main_frame)
+        form_frame.pack(fill="x", pady=10)
 
-        # Campos de registro
-        self.dibujar_campos_registro(main_frame)
+        tb.Label(form_frame, text="Nombre del Paciente:", font=("Segoe UI", 12)).grid(row=0, column=0, sticky="w", pady=8, padx=5)
+        self.nombre_entry = tb.Entry(form_frame, width=45, bootstyle="info")
+        self.nombre_entry.grid(row=0, column=1, sticky="ew", padx=5)
+        self.nombre_entry.focus()
 
-        # Información
-        self.info_label = tk.Label(main_frame, text="", font=('Arial', 12), fg='#009688', bg='#f0f8ff')
-        self.info_label.grid(row=5, column=0, columnspan=2, pady=10)
+        tb.Label(form_frame, text="Especialidad Médica:", font=("Segoe UI", 12)).grid(row=1, column=0, sticky="w", pady=8, padx=5)
+        self.especialidad_var = StringVar()
+        self.especialidad_combo = tb.Combobox(form_frame, textvariable=self.especialidad_var, values=self.especialidades, state="readonly", bootstyle="secondary")
+        self.especialidad_combo.grid(row=1, column=1, sticky="ew", padx=5)
 
-        # Botones
-        self.dibujar_botones(main_frame)
+        btn_add_esp = tb.Button(form_frame, text="+", width=3, bootstyle="info-outline", command=self.abrir_popup_especialidades)
+        btn_add_esp.grid(row=1, column=2, sticky="w")
 
-        # Atajo de teclado
-        self.root.bind('<Return>', lambda event: self.registrar_paciente())
+        tb.Label(form_frame, text="Consultorio:", font=("Segoe UI", 12)).grid(row=2, column=0, sticky="w", pady=8, padx=5)
+        self.consultorio_var = StringVar()
+        self.consultorio_combo = tb.Combobox(form_frame, textvariable=self.consultorio_var, values=self.consultorios, state="readonly", bootstyle="secondary")
+        self.consultorio_combo.grid(row=2, column=1, sticky="ew", padx=5)
 
-    def dibujar_campos_registro(self, main_frame):
-        estilo_label = {'font': ('Arial', 12), 'padx': 5, 'pady': 5, 'bg': '#f0f8ff'}
-        estilo_entry = {'font': ('Arial', 12), 'width': 40, 'bd': 2, 'relief': tk.SOLID}
+        btn_add_cons = tb.Button(form_frame, text="+", width=3, bootstyle="info-outline", command=self.abrir_popup_consultorios)
+        btn_add_cons.grid(row=2, column=2, sticky="w")
 
-        # Nombre
-        tk.Label(main_frame, text="Nombre del Paciente:", **estilo_label).grid(row=1, column=0, sticky='w')
-        self.nombre_entry = tk.Entry(main_frame, **estilo_entry)
-        self.nombre_entry.grid(row=1, column=1, pady=5, sticky='ew')
-        self.nombre_entry.focus_set()
+        form_frame.columnconfigure(1, weight=1)
 
-        # Especialidad
-        tk.Label(main_frame, text="Especialidad Médica:", **estilo_label).grid(row=2, column=0, sticky='w')
-        self.especialidad_var = tk.StringVar(self.root)
-        self.especialidades = [esp['nombre'] for esp in self.datos['especialidades']]
-        self.especialidad_menu = ttk.Combobox(main_frame, textvariable=self.especialidad_var,
-                                            values=self.especialidades, state='readonly')
-        self.especialidad_menu.config(font=('Arial', 12), width=38)
-        self.especialidad_menu.grid(row=2, column=1, pady=5, sticky='ew')
-        self.especialidad_menu.bind('<<ComboboxSelected>>', self.actualizar_consultorios_disponibles)
+        self.info_label = tb.Label(main_frame, text="", font=("Segoe UI", 11), bootstyle="success")
+        self.info_label.pack(pady=10)
 
-        # Consultorio (ahora es seleccionable)
-        tk.Label(main_frame, text="Consultorio:", **estilo_label).grid(row=3, column=0, sticky='w')
-        self.consultorio_var = tk.StringVar(self.root)
-        self.consultorio_menu = ttk.Combobox(main_frame, textvariable=self.consultorio_var, state='readonly')
-        self.consultorio_menu.config(font=('Arial', 12), width=38)
-        self.consultorio_menu.grid(row=3, column=1, pady=5, sticky='ew')
+        btn_frame = tb.Frame(main_frame)
+        btn_frame.pack(pady=20)
 
-        # Inicializar lista de consultorios
-        self.actualizar_consultorios_disponibles()
+        self.btn_registrar = tb.Button(btn_frame, text="Registrar Paciente", bootstyle="success-outline", command=self.registrar_paciente)
+        self.btn_registrar.pack(side="left", padx=10)
 
-    def actualizar_consultorios_disponibles(self, event=None):
-        """Actualiza la lista de consultorios disponibles basado en la especialidad seleccionada"""
-        especialidad = self.especialidad_var.get()
-        
-        # Obtener todos los consultorios disponibles
-        todos_consultorios = [f"Consultorio {i}" for i in range(1, 15)]
+        self.btn_reporte = tb.Button(btn_frame, text="Ver Reporte", bootstyle="secondary-outline", command=self.mostrar_reporte)
+        self.btn_reporte.pack(side="left", padx=10)
 
-        if especialidad:
-            # Consultorio sugerido para la especialidad
-            consultorio_sugerido = obtener_consultorio_especialidad(self.datos, especialidad)
-            
-            # Configurar los valores del menú de consultorios
-            if consultorio_sugerido:
-                consultorios_ordenados = [consultorio_sugerido] + \
-                                       [c for c in todos_consultorios if c != consultorio_sugerido]
-            else:
-                consultorios_ordenados = todos_consultorios
-        else:
-            consultorios_ordenados = todos_consultorios
-        
-        self.consultorio_menu['values'] = consultorios_ordenados
-        
-        if especialidad and consultorio_sugerido:
-            self.consultorio_var.set(consultorio_sugerido)
-        else:
-            self.consultorio_var.set('')
+        self.app.bind("<Return>", lambda e: self.registrar_paciente())
 
-    def dibujar_botones(self, main_frame):
-        btn_frame = tk.Frame(main_frame, bg='#f0f8ff')
-        btn_frame.grid(row=4, column=0, columnspan=2, pady=20)
+    def abrir_popup_especialidades(self):
+        popup = Toplevel(self.app)
+        popup.title("Seleccionar Especialidades")
+        popup.geometry("300x400")
 
-        estilo_boton = {
-            'font': ('Arial', 12), 
-            'bd': 2, 
-            'relief': tk.RAISED, 
-            'padx': 10, 
-            'pady': 5, 
-            'width': 20
-        }
+        vars_check = []
+        for esp in self.especialidades:
+            var = BooleanVar(value=esp in self.seleccion_especialidades)
+            chk = tb.Checkbutton(popup, text=esp, variable=var)
+            chk.pack(anchor="w", pady=2, padx=5)
+            vars_check.append((var, esp))
 
-        tk.Button(btn_frame, text="Registrar Paciente", command=self.registrar_paciente,
-                bg='#4CAF50', fg='white', **estilo_boton).pack(side=tk.LEFT, padx=10)
-        tk.Button(btn_frame, text="Ver Reporte", command=self.mostrar_reporte,
-                bg='#607D8B', fg='white', **estilo_boton).pack(side=tk.LEFT, padx=10)
+        def guardar_seleccion():
+            self.seleccion_especialidades = [esp for var, esp in vars_check if var.get()]
+            self.especialidad_var.set(", ".join(self.seleccion_especialidades) if self.seleccion_especialidades else "")
+            popup.destroy()
+
+        btn_guardar = tb.Button(popup, text="Guardar", bootstyle="success", command=guardar_seleccion)
+        btn_guardar.pack(pady=10)
+
+    def abrir_popup_consultorios(self):
+        popup = Toplevel(self.app)
+        popup.title("Seleccionar Consultorios")
+        popup.geometry("300x400")
+
+        vars_check = []
+        for cons in self.consultorios:
+            var = BooleanVar(value=cons in self.seleccion_consultorios)
+            chk = tb.Checkbutton(popup, text=cons, variable=var)
+            chk.pack(anchor="w", pady=2, padx=5)
+            vars_check.append((var, cons))
+
+        def guardar_seleccion():
+            self.seleccion_consultorios = [cons for var, cons in vars_check if var.get()]
+            self.consultorio_var.set(", ".join(self.seleccion_consultorios) if self.seleccion_consultorios else "")
+            popup.destroy()
+
+        btn_guardar = tb.Button(popup, text="Guardar", bootstyle="success", command=guardar_seleccion)
+        btn_guardar.pack(pady=10)
 
     def sincronizar_datos_periodicamente(self):
-        """Sincroniza los datos de manera periódica, actualizando la copia local de los datos."""
         while True:
             try:
-                # Cargar los datos más recientes desde PostgreSQL
                 nuevos_datos = cargar_datos()
-
-                # Comparar si los datos han cambiado
-                if nuevos_datos != self.datos:  # Si los datos han cambiado
-                    self.datos = nuevos_datos  # Actualizar la copia local en memoria
-
-                    # Actualizar la UI o cualquier otra parte relevante del programa
-                    self.actualizar_interfaz_usuario()
-
+                if nuevos_datos != self.datos:
+                    self.datos = nuevos_datos
             except Exception as e:
-                print(f"Error al sincronizar datos: {e}")
-
-            # Esperar 3 segundos antes de hacer la próxima sincronización
+                print(f"Error sincronizando datos: {e}")
             time.sleep(3)
-
-    def actualizar_interfaz_usuario(self):
-        """Actualizar la interfaz de usuario para reflejar los nuevos datos"""
-        self.actualizar_listas()
-
-    def actualizar_listas(self):
-       """Actualiza las listas de pacientes en espera y atendidos"""
-       # Asegurémonos de que las listas existan
-       if not hasattr(self, 'wait_listbox'):
-           self.wait_listbox = tk.Listbox(self.root, font=('Arial', 12), selectbackground='#e0e0e0', width=40, height=20)
-           self.wait_listbox.pack(padx=5, pady=5, fill='both', expand=True)
-
-       if not hasattr(self, 'hist_listbox'):
-           self.hist_listbox = tk.Listbox(self.root, font=('Arial', 12), selectbackground='#e0e0e0', width=40, height=20)
-           self.hist_listbox.pack(padx=5, pady=5, fill='both', expand=True)
-    
-       self.wait_listbox.delete(0, tk.END)
-       self.hist_listbox.delete(0, tk.END)
-
-        # Agrupar pacientes por consultorio
-       pacientes_por_consultorio = {}
-       hoy = datetime.now().strftime("%Y-%m-%d")
-    
-       for p in self.datos['pacientes']:
-            if p['fecha_registro'].startswith(hoy):
-               consultorio = p.get('consultorio', None) #Asignar valor del consultorio
-               if consultorio is None:
-                   continue #Si no tiene un consultorio asignado, lo omitimos
-               if consultorio not in pacientes_por_consultorio:
-                   pacientes_por_consultorio[consultorio] = {'espera': [], 'atendidos': []}
-        
-            if p.get('atendido'):
-                pacientes_por_consultorio[consultorio]['atendidos'].append(p)
-            else:
-                pacientes_por_consultorio[consultorio]['espera'].append(p)
-
-        # Mostrar en espera agrupados por consultorio
-       for consultorio in sorted(pacientes_por_consultorio.keys()):
-            pacientes = sorted(pacientes_por_consultorio[consultorio]['espera'], 
-                         key=lambda x: x['fecha_registro'])
-        
-            self.wait_listbox.insert(tk.END, f"--- {consultorio} ---")
-            for p in pacientes:
-               h = p['fecha_registro'].split(' ')[1][:5]
-               self.wait_listbox.insert(tk.END, f"  {p['id']}. {p['nombre']} ({h})")
-
-        # Mostrar atendidos ordenados por tiempo de atención
-       todos_atendidos = []
-       for consultorio in pacientes_por_consultorio:
-           todos_atendidos.extend(pacientes_por_consultorio[consultorio]['atendidos'])
-    
-       todos_atendidos.sort(key=lambda x: x.get('fecha_atencion', ''), reverse=True)
-    
-       for p in todos_atendidos[:20]:  # Mostrar solo los últimos 20
-           h_reg = p['fecha_registro'].split(' ')[1][:5]
-           h_aten = p.get('fecha_atencion', '').split(' ')[1][:5] if 'fecha_atencion' in p else ''
-           self.hist_listbox.insert(tk.END, 
-                               f"{p['id']}. {p['nombre']} ({p['consultorio']}) - Reg: {h_reg}, At: {h_aten}")
-
 
     def registrar_paciente(self):
         nombre = self.nombre_entry.get().strip()
         valido, mensaje = validar_nombre_paciente(nombre)
         if not valido:
-           messagebox.showerror("Error", mensaje, parent=self.root)
-           return
-
-        especialidad = self.especialidad_var.get()
-        if not especialidad:
-            messagebox.showerror("Error", "Debe seleccionar una especialidad", parent=self.root)
+            messagebox.showerror("Error", mensaje, parent=self.app)
             return
 
-        consultorio = self.consultorio_var.get()
-        if not consultorio:
-           messagebox.showerror("Error", "Debe seleccionar un consultorio", parent=self.root)
-           return
+        if not self.seleccion_especialidades:
+            messagebox.showerror("Error", "Debe seleccionar al menos una especialidad", parent=self.app)
+            return
+
+        if not self.seleccion_consultorios:
+            messagebox.showerror("Error", "Debe seleccionar al menos un consultorio", parent=self.app)
+            return
+
+        if len(self.seleccion_especialidades) != len(self.seleccion_consultorios):
+            messagebox.showerror("Error", "La cantidad de especialidades y consultorios seleccionados debe coincidir", parent=self.app)
+            return
 
         try:
-            # Registrar nuevo paciente directamente en la base de datos
-            paciente_id = guardar_paciente(nombre, especialidad, consultorio)
-        
-            # Actualizar los datos locales
-            self.datos = cargar_datos()
-        
-            self.info_label.config(text=f"Paciente registrado con éxito. Turno: {paciente_id}")
-            self.nombre_entry.delete(0, tk.END)
-        
-            # Mostrar ticket
-            paciente = {
-                'id': paciente_id,
-                'nombre': nombre,
-                'especialidad': especialidad,
-                'consultorio': consultorio,
-                'fecha_registro': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            self.mostrar_dialogo_ticket(paciente)
-
-        except Exception as e:
-           messagebox.showerror("Error", f"No se pudo registrar el paciente: {str(e)}", parent=self.root)
-
-
-    def mostrar_dialogo_ticket(self, paciente):
-        """Muestra un diálogo con la información del paciente y un botón para imprimir el ticket."""
-        dialogo = tk.Toplevel(self.root)
-        dialogo.title("Ticket de Registro")
-        dialogo.geometry("500x400")
-        dialogo.resizable(False, False)
-        dialogo.transient(self.root)
-        dialogo.grab_set()
-
-        # Frame principal
-        frame = tk.Frame(dialogo, padx=20, pady=20)
-        frame.pack(expand=True, fill=tk.BOTH)
-
-        # Logo en ticket
-        try:
-            logo_label = cargar_logo(frame, tamaño=(90, 90))
-            logo_label.pack(pady=10)
-        except:
-            tk.Label(frame, text="HOSPITAL DE APOYO PALPA", font=('Arial', 14, 'italic')).pack()
-
-        # Información del ticket
-        info_frame = tk.Frame(frame)
-        info_frame.pack(fill=tk.BOTH, expand=True)
-
-        tk.Label(info_frame, text=f"Turno: {paciente['id']}", font=('Arial', 12, 'bold')).pack(anchor='w')
-        tk.Label(info_frame, text=f"Paciente: {paciente['nombre']}", font=('Arial', 12)).pack(anchor='w', pady=5)
-        tk.Label(info_frame, text=f"Especialidad: {paciente['especialidad']}", font=('Arial', 12)).pack(anchor='w')
-        tk.Label(info_frame, text=f"Consultorio: {paciente['consultorio']}", font=('Arial', 12)).pack(anchor='w', pady=5)
-        tk.Label(info_frame, text=f"Fecha: {paciente['fecha_registro']}", font=('Arial', 10)).pack(anchor='w')
-
-        # Botones
-        btn_frame = tk.Frame(frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Imprimir Ticket", command=lambda: self.imprimir_ticket(paciente, dialogo),
-                 bg='#2196F3', fg='white', font=('Arial', 12)).pack(side=tk.LEFT, padx=10)
-        tk.Button(btn_frame, text="Cerrar", command=dialogo.destroy,
-                 bg='#f44336', fg='white', font=('Arial', 12)).pack(side=tk.RIGHT, padx=10)
-
-    def imprimir_ticket(self, paciente, ventana):
-        try:
-            filepath = filedialog.asksaveasfilename(
-                defaultextension=".txt",
-                filetypes=[("Archivos de texto", "*.txt"), ("Todos los archivos", "*.*")],
-                title="Guardar ticket como",
-                parent=ventana
+            paciente_id = guardar_paciente_multiple_especialidades(
+                nombre,
+                self.seleccion_especialidades,
+                self.seleccion_consultorios
             )
-
-            if filepath:
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    f.write("=== HOSPITAL DE APOYO PALPA ===\n")
-                    f.write("       TICKET DE REGISTRO\n\n")
-                    f.write(f"Turno: {paciente['id']}\n")
-                    f.write(f"Paciente: {paciente['nombre']}\n")
-                    f.write(f"Especialidad: {paciente['especialidad']}\n")
-                    f.write(f"Consultorio: {paciente['consultorio']}\n")
-                    f.write(f"Fecha: {paciente['fecha_registro']}\n\n")
-                    f.write("Presente este ticket en recepción\n")
-                    f.write("=== Gracias por su visita ===\n")
-
-                messagebox.showinfo("Éxito", f"Ticket guardado en:\n{filepath}", parent=ventana)
-                ventana.destroy()
-
+            self.datos = cargar_datos()
+            self.info_label.config(text=f"Paciente registrado con éxito. Turnos: {len(self.seleccion_especialidades)}")
+            self.nombre_entry.delete(0, "end")
+            self.especialidad_var.set("")
+            self.consultorio_var.set("")
+            self.seleccion_especialidades.clear()
+            self.seleccion_consultorios.clear()
+            self.nombre_entry.focus()
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo generar el ticket: {str(e)}", parent=ventana)
+            messagebox.showerror("Error", f"No se pudo registrar el paciente: {e}", parent=self.app)
 
-    def mostrar_reporte(self):
-        # Ventana emergente para el reporte
-        reporte = tk.Toplevel(self.root)
-        reporte.title("Reporte de Pacientes")
-        reporte.geometry("800x600")
-        reporte.configure(bg='#f0f8ff')
+    def exportar_csv_func(self, pacientes):
+        import csv
+        from tkinter import filedialog, messagebox
 
-        # Botón para exportar CSV
-        btn_export = tk.Button(
-            reporte,
-            text="Exportar CSV",
-            command=lambda: self.exportar_csv(self.datos.get('pacientes', [])),
-            font=('Arial', 12),
-            bg='#4CAF50',
-            fg='white',
-            padx=10,
-            pady=5
+        if not pacientes:
+            messagebox.showwarning("Aviso", "No hay pacientes para exportar.", parent=self.app)
+            return
+
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("Archivo CSV", "*.csv")],
+            parent=self.app,
+            title="Guardar reporte CSV"
         )
-        btn_export.pack(pady=(10, 0))
+        if not filepath:
+            return
 
-        # Treeview con encabezados
-        columnas = ("ID", "Nombre", "Especialidad", "Consultorio", "Fecha Registro", "Atendido", "Fecha Atención")
-        tree = ttk.Treeview(reporte, columns=columnas, show="headings")
-        for col in columnas:
-            tree.heading(col, text=col)
-            tree.column(col, anchor='w', width=120)
-        tree.pack(fill='both', expand=True, padx=10, pady=10)
+        try:
+            with open(filepath, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow(["ID", "Nombre", "Especialidades", "Consultorios", "Fecha Registro", "Atendido", "Fecha Atención"])
+                for p in pacientes:
+                    writer.writerow([
+                        p.get("id", ""),
+                        p.get("nombre", ""),
+                        p.get("especialidades", ""),
+                        p.get("consultorios", ""),
+                        p.get("fecha_registro", ""),
+                        "Sí" if p.get("atendido") else "No",
+                        p.get("fecha_atencion", "")
+                    ])
+            messagebox.showinfo("Éxito", "Reporte CSV exportado correctamente.", parent=self.app)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar CSV: {e}", parent=self.app)
 
-        # Scrollbar vertical
-        vsb = ttk.Scrollbar(reporte, orient="vertical", command=tree.yview)
-        tree.configure(yscrollcommand=vsb.set)
-        vsb.pack(side='right', fill='y')
+    def exportar_pdf_func(self, pacientes):
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+        from reportlab.lib.pagesizes import letter, landscape
+        from reportlab.lib import colors
+        from tkinter import filedialog, messagebox
 
-        # Carga de datos
-        for p in self.datos.get('pacientes', []):
-            tree.insert(
-                "",
-                tk.END,
-                values=(
+        if not pacientes:
+            messagebox.showwarning("Aviso", "No hay pacientes para exportar.", parent=self.app)
+            return
+
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("Archivo PDF", "*.pdf")],
+            parent=self.app,
+            title="Guardar reporte PDF"
+        )
+        if not filepath:
+            return
+
+        try:
+            doc = SimpleDocTemplate(filepath, pagesize=landscape(letter))
+            data = [["ID", "Nombre", "Especialidades", "Consultorios", "Fecha Registro", "Atendido", "Fecha Atención"]]
+            for p in pacientes:
+                data.append([
                     p.get("id", ""),
                     p.get("nombre", ""),
-                    p.get("especialidad", ""),
-                    p.get("consultorio", ""),
+                    p.get("especialidades", ""),
+                    p.get("consultorios", ""),
                     p.get("fecha_registro", ""),
                     "Sí" if p.get("atendido") else "No",
                     p.get("fecha_atencion", "")
-                )
-            )
+                ])
 
-        # Botón para editar paciente
-        def editar_paciente():
-            # Obtén el ID seleccionado
-            seleccionado = tree.selection()
-            if not seleccionado:
-                messagebox.showwarning("Seleccionar Paciente", "Debe seleccionar un paciente para editar.")
-                return
+            table = Table(data)
+            style = TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.lightblue),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0,0), (-1,0), 12),
+                ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ])
+            table.setStyle(style)
 
-            item = tree.item(seleccionado)
-            paciente_id = item['values'][0]  # Obtén el ID del paciente seleccionado
-            paciente = next((p for p in self.datos['pacientes'] if p['id'] == paciente_id), None)
+            elems = [table]
+            doc.build(elems)
 
-            if paciente:
-                # Crear una ventana de edición
-                self.editar_paciente_ventana(paciente)
-
-        editar_button = tk.Button(
-            reporte,
-            text="Editar Paciente",
-            command=editar_paciente,
-            font=('Arial', 12),
-            bg='#FF9800',
-            fg='white',
-            padx=10,
-            pady=5
-        )
-        editar_button.pack(pady=(10, 0))
-
-        # Botón para cerrar la ventana
-        tk.Button(
-            reporte,
-            text="Cerrar",
-            command=reporte.destroy,
-            font=('Arial', 12),
-            bg='#f44336',
-            fg='white',
-            padx=10,
-            pady=5
-        ).pack(pady=(0,10))
-
-    def editar_paciente_ventana(self, paciente):
-        """Crea una ventana para editar los datos de un paciente específico."""
-        ventana_editar = tk.Toplevel(self.root)
-        ventana_editar.title(f"Editar Paciente {paciente['id']}")
-        ventana_editar.geometry("400x300")
-        ventana_editar.configure(bg='#f0f8ff')
-
-        # Campo de nombre
-        tk.Label(ventana_editar, text="Nombre del Paciente:", bg='#f0f8ff').pack(pady=5)
-        nombre_entry = tk.Entry(ventana_editar)
-        nombre_entry.insert(0, paciente['nombre'])
-        nombre_entry.pack(pady=5)
-
-        # ComboBox de especialidad
-        tk.Label(ventana_editar, text="Especialidad:", bg='#f0f8ff').pack(pady=5)
-        especialidad_entry = ttk.Combobox(ventana_editar, state="readonly", width=40)
-        especialidades = [esp['nombre'] for esp in self.datos['especialidades']]
-        especialidad_entry['values'] = especialidades
-        especialidad_entry.set(paciente['especialidad'])  # Establecer la especialidad actual del paciente
-        especialidad_entry.pack(pady=5)
-
-        # ComboBox de consultorio
-        tk.Label(ventana_editar, text="Consultorio:", bg='#f0f8ff').pack(pady=5)
-        consultorio_entry = ttk.Combobox(ventana_editar, state="readonly", width=40)
-        consultorios = [f"Consultorio {i}" for i in range(1, 15)]  # Consultorios de 1 a 14
-        consultorio_entry['values'] = consultorios
-        consultorio_entry.set(paciente['consultorio'])  # Establecer el consultorio actual del paciente
-        consultorio_entry.pack(pady=5)
-
-        def guardar_cambios():
-            paciente_id = paciente['id']
-            nuevo_nombre = nombre_entry.get()
-            nueva_especialidad = especialidad_entry.get()
-            nuevo_consultorio = consultorio_entry.get()
-
-            try:
-                actualizar_paciente(paciente_id, nuevo_nombre, nueva_especialidad, nuevo_consultorio)
-                messagebox.showinfo("Éxito", "Paciente editado con éxito.", parent=ventana_editar)
-                ventana_editar.destroy()
-                # Recargar datos y actualizar listas
-                self.datos = cargar_datos()
-                self.actualizar_listas()
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo actualizar el paciente: {e}", parent=ventana_editar)
-
-        tk.Button(ventana_editar, text="Guardar Cambios", command=guardar_cambios, bg='#4CAF50', fg='white').pack(pady=20)
-
-        tk.Button(ventana_editar, text="Cerrar", command=ventana_editar.destroy, bg='#f44336', fg='white').pack(pady=5)
-
-    def exportar_csv(self, pacientes):
-        filepath = filedialog.asksaveasfilename(
-            defaultextension=".csv",
-            filetypes=[("Archivos CSV","*.csv")],
-            title="Guardar Reporte como CSV"
-        )
-        if not filepath:
-           return
-
-        try:
-           with open(filepath, 'w', newline='', encoding='utf-8') as f:
-               writer = csv.writer(f)
-               writer.writerow([
-                  "ID", "Nombre", "Especialidad",
-                  "Consultorio", "Fecha Registro",
-                  "Atendido", "Fecha Atención"
-               ])
-               for p in pacientes:
-                   writer.writerow([
-                       p.get("id", ""),
-                       p.get("nombre", ""),
-                       p.get("especialidad", ""),
-                       p.get("consultorio", ""),
-                       p.get("fecha_registro", ""),
-                       "Sí" if p.get("atendido") else "No",
-                       p.get("fecha_atencion", "")
-                   ])
-           messagebox.showinfo("Éxito", f"Reporte exportado a:\n{filepath}", parent=self.root)
+            messagebox.showinfo("Éxito", "Reporte PDF exportado correctamente.", parent=self.app)
         except Exception as e:
-           messagebox.showerror("Error", f"No se pudo exportar CSV:\n{e}", parent=self.root)
+            messagebox.showerror("Error", f"No se pudo exportar PDF: {e}", parent=self.app)
+
+    def mostrar_reporte(self):
+        reporte_win = tb.Toplevel(self.app)
+        reporte_win.title("Reporte de Pacientes")
+        reporte_win.geometry("950x700")
+
+        frame = tb.Frame(reporte_win, padding=15)
+        frame.pack(fill="both", expand=True)
+
+        filtro_frame = tb.Frame(frame)
+        filtro_frame.pack(fill="x", pady=(0,10))
+
+        tb.Label(filtro_frame, text="Filtrar Nombre:", width=15).grid(row=0, column=0, padx=5)
+        nombre_filtro_var = StringVar()
+        nombre_filtro = tb.Entry(filtro_frame, textvariable=nombre_filtro_var, bootstyle="info")
+        nombre_filtro.grid(row=0, column=1, padx=5)
+
+        tb.Label(filtro_frame, text="Filtrar Especialidad:", width=18).grid(row=0, column=2, padx=5)
+        esp_set = set()
+        for p in self.datos.get('pacientes', []):
+            esp_str = p.get('especialidades', '')
+            if esp_str:
+                for e in esp_str.split(','):
+                    esp_set.add(e.strip())
+        especialidades = sorted(esp_set)
+        especialidad_filtro_var = StringVar()
+        especialidad_filtro = tb.Combobox(filtro_frame, textvariable=especialidad_filtro_var, values=[""] + especialidades, state="readonly", bootstyle="secondary")
+        especialidad_filtro.grid(row=0, column=3, padx=5)
+
+        tb.Label(filtro_frame, text="Filtrar Consultorio:", width=15).grid(row=0, column=4, padx=5)
+        cons_set = set()
+        for p in self.datos.get('pacientes', []):
+            cons_str = p.get('consultorios', '')
+            if cons_str:
+                for c in cons_str.split(','):
+                    cons_set.add(c.strip())
+        consultorios = sorted(cons_set)
+        consultorio_filtro_var = StringVar()
+        consultorio_filtro = tb.Combobox(filtro_frame, textvariable=consultorio_filtro_var, values=[""] + consultorios, state="readonly", bootstyle="secondary")
+        consultorio_filtro.grid(row=0, column=5, padx=5)
+
+        filtro_frame.columnconfigure(1, weight=1)
+        filtro_frame.columnconfigure(3, weight=1)
+        filtro_frame.columnconfigure(5, weight=1)
+
+        btn_frame = tb.Frame(frame)
+        btn_frame.pack(anchor="ne", pady=(0,10))
+
+        btn_export_csv = tb.Button(btn_frame, text="Exportar CSV", bootstyle="success-outline", width=15,
+                                   command=lambda: self.exportar_csv_func(filtrar_pacientes()))
+        btn_export_csv.pack(side="left", padx=5)
+
+        btn_export_pdf = tb.Button(btn_frame, text="Exportar PDF", bootstyle="primary-outline", width=15,
+                                   command=lambda: self.exportar_pdf_func(filtrar_pacientes()))
+        btn_export_pdf.pack(side="left", padx=5)
+
+        columnas = ("ID", "Nombre", "Especialidades", "Consultorios", "Fecha Registro", "Atendido", "Fecha Atención")
+
+        tree = ttk.Treeview(frame, columns=columnas, show="headings", selectmode="browse")
+        tree.pack(fill="both", expand=True)
+
+        vsb = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+        vsb.pack(side="right", fill="y")
+        tree.configure(yscrollcommand=vsb.set)
+
+        for col in columnas:
+            tree.heading(col, text=col)
+            tree.column(col, anchor="w", width=130)
+
+        def llenar_tabla(pacientes):
+            tree.delete(*tree.get_children())
+            for p in pacientes:
+                tree.insert("", "end", values=(
+                    p.get("id", ""),
+                    p.get("nombre", ""),
+                    p.get("especialidades", ""),
+                    p.get("consultorios", ""),
+                    p.get("fecha_registro", ""),
+                    "Sí" if p.get("atendido") else "No",
+                    p.get("fecha_atencion", "")
+                ))
+
+        def filtrar_pacientes():
+            nombre_f = nombre_filtro_var.get().lower()
+            esp_f = especialidad_filtro_var.get()
+            cons_f = consultorio_filtro_var.get()
+
+            pacientes_filtrados = []
+            for p in self.datos.get('pacientes', []):
+                nombre_p = p.get('nombre', '').lower()
+                if nombre_f and nombre_f not in nombre_p:
+                    continue
+
+                esp_p = p.get('especialidades', '')
+                if esp_f and esp_f not in [e.strip() for e in esp_p.split(',')]:
+                    continue
+
+                cons_p = p.get('consultorios', '')
+                if cons_f and cons_f not in [c.strip() for c in cons_p.split(',')]:
+                    continue
+
+                pacientes_filtrados.append(p)
+            return pacientes_filtrados
+
+        def on_filtro_cambio(*args):
+            pacientes_filtrados = filtrar_pacientes()
+            llenar_tabla(pacientes_filtrados)
+
+        nombre_filtro_var.trace_add("write", on_filtro_cambio)
+        especialidad_filtro_var.trace_add("write", on_filtro_cambio)
+        consultorio_filtro_var.trace_add("write", on_filtro_cambio)
+
+        llenar_tabla(self.datos.get('pacientes', []))
 
     def run(self):
-        self.root.mainloop()
+        self.app.mainloop()
+
 
 if __name__ == "__main__":
     app = ModuloAdmision()
     app.run()
+
+
 
 
 
