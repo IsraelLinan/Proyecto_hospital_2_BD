@@ -188,13 +188,13 @@ class ModuloAdmision:
         try:
             with open(filepath, mode='w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
-                writer.writerow(["ID", "Nombre", "Especialidades", "Consultorios", "Fecha Registro", "Atendido", "Fecha Atención"])
+                writer.writerow(["ID", "Nombre", "Especialidad", "Consultorio", "Fecha Registro", "Atendido", "Fecha Atención"])
                 for p in pacientes:
                     writer.writerow([
                         p.get("id", ""),
                         p.get("nombre", ""),
-                        p.get("especialidades", ""),
-                        p.get("consultorios", ""),
+                        p.get("especialidad", ""),
+                        p.get("consultorio", ""),
                         p.get("fecha_registro", ""),
                         "Sí" if p.get("atendido") else "No",
                         p.get("fecha_atencion", "")
@@ -224,13 +224,13 @@ class ModuloAdmision:
 
         try:
             doc = SimpleDocTemplate(filepath, pagesize=landscape(letter))
-            data = [["ID", "Nombre", "Especialidades", "Consultorios", "Fecha Registro", "Atendido", "Fecha Atención"]]
+            data = [["ID", "Nombre", "Especialidad", "Consultorio", "Fecha Registro", "Atendido", "Fecha Atención"]]
             for p in pacientes:
                 data.append([
                     p.get("id", ""),
                     p.get("nombre", ""),
-                    p.get("especialidades", ""),
-                    p.get("consultorios", ""),
+                    p.get("especialidad", ""),
+                    p.get("consultorio", ""),
                     p.get("fecha_registro", ""),
                     "Sí" if p.get("atendido") else "No",
                     p.get("fecha_atencion", "")
@@ -273,10 +273,9 @@ class ModuloAdmision:
         tb.Label(filtro_frame, text="Filtrar Especialidad:", width=18).grid(row=0, column=2, padx=5)
         esp_set = set()
         for p in self.datos.get('pacientes', []):
-            esp_str = p.get('especialidades', '')
+            esp_str = p.get('especialidad', '')
             if esp_str:
-                for e in esp_str.split(','):
-                    esp_set.add(e.strip())
+                esp_set.add(esp_str.strip())
         especialidades = sorted(esp_set)
         especialidad_filtro_var = StringVar()
         especialidad_filtro = tb.Combobox(filtro_frame, textvariable=especialidad_filtro_var, values=[""] + especialidades, state="readonly", bootstyle="secondary")
@@ -285,10 +284,9 @@ class ModuloAdmision:
         tb.Label(filtro_frame, text="Filtrar Consultorio:", width=15).grid(row=0, column=4, padx=5)
         cons_set = set()
         for p in self.datos.get('pacientes', []):
-            cons_str = p.get('consultorios', '')
+            cons_str = p.get('consultorio', '')
             if cons_str:
-                for c in cons_str.split(','):
-                    cons_set.add(c.strip())
+                cons_set.add(cons_str.strip())
         consultorios = sorted(cons_set)
         consultorio_filtro_var = StringVar()
         consultorio_filtro = tb.Combobox(filtro_frame, textvariable=consultorio_filtro_var, values=[""] + consultorios, state="readonly", bootstyle="secondary")
@@ -309,7 +307,7 @@ class ModuloAdmision:
                                    command=lambda: self.exportar_pdf_func(filtrar_pacientes()))
         btn_export_pdf.pack(side="left", padx=5)
 
-        columnas = ("ID", "Nombre", "Especialidades", "Consultorios", "Fecha Registro", "Atendido", "Fecha Atención")
+        columnas = ("ID", "Nombre", "Especialidad", "Consultorio", "Fecha Registro", "Atendido", "Fecha Atención")
 
         tree = ttk.Treeview(frame, columns=columnas, show="headings", selectmode="browse")
         tree.pack(fill="both", expand=True)
@@ -328,8 +326,8 @@ class ModuloAdmision:
                 tree.insert("", "end", values=(
                     p.get("id", ""),
                     p.get("nombre", ""),
-                    p.get("especialidades", ""),
-                    p.get("consultorios", ""),
+                    p.get("especialidad", ""),
+                    p.get("consultorio", ""),
                     p.get("fecha_registro", ""),
                     "Sí" if p.get("atendido") else "No",
                     p.get("fecha_atencion", "")
@@ -346,12 +344,12 @@ class ModuloAdmision:
                 if nombre_f and nombre_f not in nombre_p:
                     continue
 
-                esp_p = p.get('especialidades', '')
-                if esp_f and esp_f not in [e.strip() for e in esp_p.split(',')]:
+                esp_p = p.get('especialidad', '')
+                if esp_f and esp_f != esp_p:
                     continue
 
-                cons_p = p.get('consultorios', '')
-                if cons_f and cons_f not in [c.strip() for c in cons_p.split(',')]:
+                cons_p = p.get('consultorio', '')
+                if cons_f and cons_f != cons_p:
                     continue
 
                 pacientes_filtrados.append(p)
@@ -370,10 +368,10 @@ class ModuloAdmision:
     def run(self):
         self.app.mainloop()
 
-
 if __name__ == "__main__":
     app = ModuloAdmision()
     app.run()
+
 
 
 

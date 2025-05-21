@@ -23,10 +23,9 @@ class ModuloConsultorio:
             self.consultorio_id = str(consultorio_id)
             self.datos = cargar_datos()
 
-            # Intentamos obtener especialidad para mostrar (opcional)
             try:
                 self.especialidad = next(
-                    esp['nombre'] for esp in self.datos['especialidades'] 
+                    esp['nombre'] for esp in self.datos['especialidades']
                     if esp['consultorio'] == f"Consultorio {consultorio_id}"
                 )
             except StopIteration:
@@ -75,34 +74,32 @@ class ModuloConsultorio:
         lists_frame = tb.Frame(self.app, padding=10)
         lists_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        # Pacientes en espera
         espera_frame = tb.Labelframe(lists_frame, text="Pacientes en Espera", bootstyle="secondary")
         espera_frame.pack(side="left", fill="both", expand=True, padx=5)
 
-        self.wait_tree = ttk.Treeview(espera_frame, columns=("ID", "Nombre", "Hora"), show="headings", selectmode="browse")
+        self.wait_tree = ttk.Treeview(espera_frame, columns=("ID", "Nombre", "Especialidad - Consultorio"), show="headings", selectmode="browse")
         self.wait_tree.heading("ID", text="ID")
         self.wait_tree.heading("Nombre", text="Nombre")
-        self.wait_tree.heading("Hora", text="Hora")
+        self.wait_tree.heading("Especialidad - Consultorio", text="Especialidad - Consultorio")
         self.wait_tree.column("ID", width=40, anchor="center")
         self.wait_tree.column("Nombre", width=200)
-        self.wait_tree.column("Hora", width=70, anchor="center")
+        self.wait_tree.column("Especialidad - Consultorio", width=250)
         self.wait_tree.pack(fill="both", expand=True, side="left")
 
         scrollbar_wait = tb.Scrollbar(espera_frame, command=self.wait_tree.yview, bootstyle="secondary")
         scrollbar_wait.pack(side="right", fill="y")
         self.wait_tree.configure(yscrollcommand=scrollbar_wait.set)
 
-        # Historial de hoy
         hist_frame = tb.Labelframe(lists_frame, text="Historial de Hoy", bootstyle="secondary")
         hist_frame.pack(side="left", fill="both", expand=True, padx=5)
 
-        self.hist_tree = ttk.Treeview(hist_frame, columns=("ID", "Nombre", "Hora"), show="headings", selectmode="browse")
+        self.hist_tree = ttk.Treeview(hist_frame, columns=("ID", "Nombre", "Especialidad - Consultorio"), show="headings", selectmode="browse")
         self.hist_tree.heading("ID", text="ID")
         self.hist_tree.heading("Nombre", text="Nombre")
-        self.hist_tree.heading("Hora", text="Hora")
+        self.hist_tree.heading("Especialidad - Consultorio", text="Especialidad - Consultorio")
         self.hist_tree.column("ID", width=40, anchor="center")
         self.hist_tree.column("Nombre", width=200)
-        self.hist_tree.column("Hora", width=70, anchor="center")
+        self.hist_tree.column("Especialidad - Consultorio", width=250)
         self.hist_tree.pack(fill="both", expand=True, side="left")
 
         scrollbar_hist = tb.Scrollbar(hist_frame, command=self.hist_tree.yview, bootstyle="secondary")
@@ -136,14 +133,20 @@ class ModuloConsultorio:
             messagebox.showerror("Error", f"No se pudo llamar al paciente: {e}", parent=self.app)
 
     def re_llamar_paciente(self):
+        import datetime
         try:
             hist = obtener_historial_atencion_consultorio(self.consultorio_id)
             if not hist:
                 messagebox.showinfo("Info", "No hay historial de atenciones para re-llamar", parent=self.app)
                 return
             ultimo = sorted(hist, key=lambda x: x.get('fecha_atencion', ''), reverse=True)[0]
-            mensaje = f"RELLAMADO_Paciente {ultimo['nombre']}, favor pasar al consultorio {self.consultorio_id}"
+
+            # Para asegurar que cada re-llamado sea único, agregamos timestamp
+            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            mensaje = f"RELLAMADO {ts} Paciente {ultimo['nombre']}, favor pasar al consultorio {self.consultorio_id}"
+
             messagebox.showinfo("Re-llamar Paciente", f"Paciente: {ultimo['nombre']}\nConsultorio: {self.consultorio_id}", parent=self.app)
+
             guardar_ultimo_llamado(mensaje)
 
             self.datos = cargar_datos()
@@ -159,34 +162,33 @@ class ModuloConsultorio:
             espera = obtener_pacientes_espera_consultorio(self.consultorio_id)
             if espera:
                 for p in espera:
-                    f_reg = p['fecha_registro']
-                    if hasattr(f_reg, 'strftime'):
-                        hora = f_reg.strftime("%H:%M")
-                    elif isinstance(f_reg, str) and ' ' in f_reg:
-                        hora = f_reg.split(' ')[1][:5]
-                    else:
-                        hora = ''
-
-                    self.wait_tree.insert("", "end", values=(p['id'], p['nombre'], hora))
+                    hora = self._formatear_hora(p.get('fecha_registro'))
+                    especialidad = p.get('especialidad', '')
+                    consultorio = p.get('consultorio', '')
+                    self.wait_tree.insert("", "end", values=(p['id'], p['nombre'], f"{especialidad} - {consultorio}"))
             else:
                 self.wait_tree.insert("", "end", values=("", "Sin pacientes en espera", ""))
 
             hist = obtener_historial_atencion_consultorio(self.consultorio_id)
             if hist:
                 for p in hist:
-                    f_aten = p.get('fecha_atencion')
-                    if hasattr(f_aten, 'strftime'):
-                        hora = f_aten.strftime("%H:%M")
-                    elif isinstance(f_aten, str) and ' ' in f_aten:
-                        hora = f_aten.split(' ')[1][:5]
-                    else:
-                        hora = ''
-
-                    self.hist_tree.insert("", "end", values=(p['id'], p['nombre'], hora))
+                    hora = self._formatear_hora(p.get('fecha_atencion'))
+                    especialidad = p.get('especialidad', '')
+                    consultorio = p.get('consultorio', '')
+                    self.hist_tree.insert("", "end", values=(p['id'], p['nombre'], f"{especialidad} - {consultorio}"))
             else:
                 self.hist_tree.insert("", "end", values=("", "Sin historial de hoy", ""))
         except Exception as e:
             messagebox.showerror("Error", f"Error al actualizar listas: {e}", parent=self.app)
+
+    def _formatear_hora(self, fecha):
+        if not fecha:
+            return ""
+        if hasattr(fecha, 'strftime'):
+            return fecha.strftime("%H:%M")
+        if isinstance(fecha, str) and ' ' in fecha:
+            return fecha.split(' ')[1][:5]
+        return ""
 
     def refresh_data_thread(self):
         def refrescar():
@@ -203,7 +205,6 @@ class ModuloConsultorio:
         self.app.protocol("WM_DELETE_WINDOW", self.app.destroy)
         self.app.mainloop()
 
-
 if __name__ == "__main__":
     import tkinter.simpledialog as simpledialog
     consultorio_id = simpledialog.askstring("Consultorio", "Ingrese el número (1-14):")
@@ -213,5 +214,6 @@ if __name__ == "__main__":
             app.run()
         except Exception as e:
             messagebox.showerror("Error de Inicialización", f"No se pudo iniciar la aplicación: {e}")
+
 
 

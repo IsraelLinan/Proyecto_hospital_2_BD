@@ -50,17 +50,13 @@ def cargar_datos():
             especialidades = cursor.fetchall()
 
             cursor.execute("""
-                SELECT p.id, p.nombre,
-                       STRING_AGG(DISTINCT e.nombre, ', ') AS especialidades,
-                       STRING_AGG(DISTINCT pe.consultorio, ', ') AS consultorios,
-                       p.fecha_registro,
-                       p.atendido,
-                       p.fecha_atencion
+                SELECT p.id, p.nombre, p.fecha_registro, p.atendido, p.fecha_atencion,
+                       e.nombre AS especialidad,
+                    pe.consultorio
                 FROM pacientes p
                 LEFT JOIN pacientes_especialidades pe ON p.id = pe.paciente_id
                 LEFT JOIN especialidades e ON pe.especialidad_id = e.id
                 WHERE DATE(p.fecha_registro) = CURRENT_DATE
-                GROUP BY p.id, p.nombre, p.fecha_registro, p.atendido, p.fecha_atencion
                 ORDER BY p.fecha_registro
             """)
             pacientes = cursor.fetchall()
@@ -204,15 +200,14 @@ def obtener_pacientes_espera_consultorio(consultorio_id):
         with conexion.cursor(cursor_factory=DictCursor) as cursor:
             cursor.execute("""
                 SELECT p.id, p.nombre, p.fecha_registro,
-                    STRING_AGG(DISTINCT e.nombre, ', ') AS especialidades,
-                    pe.consultorio
+                       e.nombre AS especialidad,
+                       pe.consultorio
                 FROM pacientes p
                 JOIN pacientes_especialidades pe ON p.id = pe.paciente_id
                 JOIN especialidades e ON pe.especialidad_id = e.id
                 WHERE pe.consultorio = %s
                   AND p.atendido = FALSE
                   AND DATE(p.fecha_registro) = CURRENT_DATE
-                GROUP BY p.id, p.nombre, p.fecha_registro, pe.consultorio
                 ORDER BY p.fecha_registro ASC
             """, (consultorio,))
             return cursor.fetchall()
@@ -221,6 +216,7 @@ def obtener_pacientes_espera_consultorio(consultorio_id):
     finally:
         if conexion:
             liberar_conexion(conexion)
+
 
 def obtener_historial_atencion_consultorio(consultorio_id):
     consultorio = f"Consultorio {consultorio_id}"
