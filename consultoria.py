@@ -126,8 +126,8 @@ class ModuloConsultorio:
                 return
             ultimo = sorted(hist, key=lambda x: x.get('fecha_atencion', ''), reverse=True)[0]
 
-            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            mensaje = f"RELLAMADO {ts} Paciente {ultimo['nombre']}, favor pasar al consultorio {self.consultorio_id}"
+            ts = datetime.datetime.now().strftime("%H:%M:%S")
+            mensaje = f"{ts} Paciente {ultimo['nombre']}, favor pasar al consultorio {self.consultorio_id}"
 
             messagebox.showinfo("Re-llamar Paciente", f"Paciente: {ultimo['nombre']}\nConsultorio: {self.consultorio_id}", parent=self.app)
 
