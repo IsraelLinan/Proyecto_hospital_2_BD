@@ -13,6 +13,7 @@ from hospital_lib import (
     guardar_ultimo_llamado,
     marcar_paciente_atendido,
 )
+
 class ModuloConsultorio:
     def __init__(self, consultorio_id):
         self.consultorio_id = str(consultorio_id)
@@ -24,7 +25,6 @@ class ModuloConsultorio:
         self.setup_ui()
         self.setup_hotkeys()
         self.refresh_data_thread()
-
 
     def setup_ui(self):
         header = tb.Frame(self.app, padding=10)
@@ -147,7 +147,6 @@ class ModuloConsultorio:
             espera = obtener_pacientes_espera_consultorio(self.consultorio_id)
             if espera:
                 for p in espera:
-                    hora = self._formatear_hora(p.get('fecha_registro'))
                     especialidad = p.get('especialidad', '')
                     consultorio = p.get('consultorio', '')
                     self.wait_tree.insert("", "end", values=(p['id'], p['nombre'], f"{especialidad} - {consultorio}"))
@@ -157,7 +156,6 @@ class ModuloConsultorio:
             hist = obtener_historial_atencion_consultorio(self.consultorio_id)
             if hist:
                 for p in hist:
-                    hora = self._formatear_hora(p.get('fecha_atencion'))
                     especialidad = p.get('especialidad', '')
                     consultorio = p.get('consultorio', '')
                     self.hist_tree.insert("", "end", values=(p['id'], p['nombre'], f"{especialidad} - {consultorio}"))

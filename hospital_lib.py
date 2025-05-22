@@ -107,16 +107,22 @@ def cargar_datos():
     try:
         conexion = obtener_conexion()
         with conexion.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute("SELECT id, nombre, consultorio FROM especialidades ORDER BY id")
+            cursor.execute("SELECT id, nombre FROM especialidades ORDER BY id")
             especialidades = cursor.fetchall()
 
             cursor.execute("""
-                SELECT p.id, p.nombre, e.nombre AS especialidad,
-                       pe.consultorio, pe.fecha_registro, pe.atendido, pe.fecha_atencion
+                SELECT 
+                    p.id as paciente_id, 
+                    p.nombre, 
+                    e.nombre AS especialidad,
+                    pe.consultorio, 
+                    pe.fecha_registro, 
+                    pe.atendido, 
+                    pe.fecha_atencion
                 FROM pacientes p
-                LEFT JOIN pacientes_especialidades pe ON p.id = pe.paciente_id
-                LEFT JOIN especialidades e ON pe.especialidad_id = e.id
-                WHERE DATE(p.fecha_registro) = CURRENT_DATE
+                JOIN pacientes_especialidades pe ON p.id = pe.paciente_id
+                JOIN especialidades e ON pe.especialidad_id = e.id
+                WHERE DATE(pe.fecha_registro) = CURRENT_DATE
                 ORDER BY pe.fecha_registro
             """)
             pacientes = cursor.fetchall()

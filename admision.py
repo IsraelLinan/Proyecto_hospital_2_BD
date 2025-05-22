@@ -191,7 +191,7 @@ class ModuloAdmision:
                 writer.writerow(["ID", "Nombre", "Especialidad", "Consultorio", "Fecha Registro", "Atendido", "Fecha Atención"])
                 for p in pacientes:
                     writer.writerow([
-                        p.get("id", ""),
+                        p.get("paciente_id", ""),
                         p.get("nombre", ""),
                         p.get("especialidad", ""),
                         p.get("consultorio", ""),
@@ -227,7 +227,7 @@ class ModuloAdmision:
             data = [["ID", "Nombre", "Especialidad", "Consultorio", "Fecha Registro", "Atendido", "Fecha Atención"]]
             for p in pacientes:
                 data.append([
-                    p.get("id", ""),
+                    p.get("paciente_id", ""),
                     p.get("nombre", ""),
                     p.get("especialidad", ""),
                     p.get("consultorio", ""),
@@ -324,7 +324,7 @@ class ModuloAdmision:
             tree.delete(*tree.get_children())
             for p in pacientes:
                 tree.insert("", "end", values=(
-                    p.get("id", ""),
+                    p.get("paciente_id", ""),
                     p.get("nombre", ""),
                     p.get("especialidad", ""),
                     p.get("consultorio", ""),
@@ -355,13 +355,9 @@ class ModuloAdmision:
                 pacientes_filtrados.append(p)
             return pacientes_filtrados
 
-        def on_filtro_cambio(*args):
-            pacientes_filtrados = filtrar_pacientes()
-            llenar_tabla(pacientes_filtrados)
-
-        nombre_filtro_var.trace_add("write", on_filtro_cambio)
-        especialidad_filtro_var.trace_add("write", on_filtro_cambio)
-        consultorio_filtro_var.trace_add("write", on_filtro_cambio)
+        nombre_filtro_var.trace_add("write", lambda *args: llenar_tabla(filtrar_pacientes()))
+        especialidad_filtro_var.trace_add("write", lambda *args: llenar_tabla(filtrar_pacientes()))
+        consultorio_filtro_var.trace_add("write", lambda *args: llenar_tabla(filtrar_pacientes()))
 
         llenar_tabla(self.datos.get('pacientes', []))
 
@@ -371,6 +367,7 @@ class ModuloAdmision:
 if __name__ == "__main__":
     app = ModuloAdmision()
     app.run()
+
 
 
 

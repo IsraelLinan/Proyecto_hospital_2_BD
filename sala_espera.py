@@ -159,26 +159,21 @@ class SalaEspera:
         self.txt_atencion.delete(0, tk.END)
 
         for p in self.datos.get('pacientes', []):
+            consultorio = p.get('consultorio') or 'Consultorio desconocido'
+            especialidad = p.get('especialidad', '')
+            nombre_p = p.get('nombre', 'Nombre desconocido')
+            id_p = p.get('paciente_id', '?')
+
+            fecha_registro = p.get('fecha_registro')
+            fecha_atencion = p.get('fecha_atencion')
+            h_reg = fecha_registro.strftime("%H:%M") if fecha_registro else ""
+            h_aten = fecha_atencion.strftime("%H:%M") if fecha_atencion else ""
+
             if not p.get('atendido', False):
-                consultorio = p.get('consultorio') or 'Consultorio desconocido'
-                especialidad = p.get('especialidad', '')
-                nombre_p = p.get('nombre', 'Nombre desconocido')
-                id_p = p.get('id', '?')
-                self.txt_espera.insert(tk.END, f"  {id_p}. {nombre_p} ({especialidad} - {consultorio})")
+               self.txt_espera.insert(tk.END, f"  {id_p}. {nombre_p} ({especialidad} - {consultorio})")
+            else:
+               self.txt_atencion.insert(tk.END, f"{id_p}. {nombre_p} ({especialidad} - {consultorio}) - Reg: {h_reg}, At: {h_aten}")
 
-        for p in self.datos.get('pacientes', []):
-            if p.get('atendido', False):
-                consultorio = p.get('consultorio') or 'Consultorio desconocido'
-                especialidad = p.get('especialidad', '')
-                nombre_p = p.get('nombre', 'Nombre desconocido')
-                id_p = p.get('id', '?')
-
-                fecha_registro = p.get('fecha_registro')
-                fecha_atencion = p.get('fecha_atencion')
-                h_reg = fecha_registro.strftime("%H:%M") if fecha_registro else ""
-                h_aten = fecha_atencion.strftime("%H:%M") if fecha_atencion else ""
-
-                self.txt_atencion.insert(tk.END, f"{id_p}. {nombre_p} ({especialidad} - {consultorio}) - Reg: {h_reg}, At: {h_aten}")
 
     def _verificar_cambios(self):
         try:
