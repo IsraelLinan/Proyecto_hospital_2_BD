@@ -21,7 +21,6 @@ LOGO_HEIGHT = 200
 
 class SalaEspera:
     def __init__(self):
-        try:
             self.audio_enabled = True
             self.current_audio_thread = None
             self.ultimo_llamado = None
@@ -46,24 +45,11 @@ class SalaEspera:
 
             self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        except Exception as e:
-            print(f"Error al iniciar Sala de Espera: {e}")
-            raise
-
     def _initialize_audio_system(self):
         try:
             pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=2048)
-            if not pygame.mixer.get_init():
-               raise Exception("Mixer no se inicializó correctamente")
-            print("Sistema de audio pygame inicializado correctamente")
-        except Exception as e:
-            print(f"Error al inicializar pygame mixer: {e}")
-            try:
-               winsound.Beep(1000, 100)
-               print("Usando winsound como respaldo de audio")
-            except Exception as e2:
-              print(f"Error usando winsound: {e2}")
-              print("Sistema de audio completamente deshabilitado")
+            
+        except Exception:
               self.audio_enabled = False
 
     def _execute_audio_playback(self, texto):
@@ -167,92 +153,32 @@ class SalaEspera:
     def _update_clock(self):
         self.lbl_reloj.config(text=datetime.now().strftime("%H:%M:%S"))
         self.root.after(1000, self._update_clock)
-
+        
     def _cargar_listas(self):
         self.txt_espera.delete(0, tk.END)
         self.txt_atencion.delete(0, tk.END)
 
-        try:
-            for p in self.datos.get('pacientes', []):
-                if not p.get('atendido', False):
-                    consultorio = p.get('consultorio')
-                    if not consultorio:
-                        consultorio = 'Consultorio desconocido'
-                    especialidad = p.get('especialidad', '')
-
-                    fecha_registro = p.get('fecha_registro')
-                    try:
-                        if isinstance(fecha_registro, datetime):
-                            h = fecha_registro.strftime("%H:%M")
-                        elif isinstance(fecha_registro, str) and ' ' in fecha_registro:
-                            h = fecha_registro.split(' ')[1][:5]
-                        else:
-                            h = "Hora desconocida"
-                    except Exception as e:
-                        print(f"Error al procesar fecha_registro paciente {p.get('id', '?')}: {e}")
-                        h = "Hora error"
-
-                    nombre_p = p.get('nombre', 'Nombre desconocido')
-                    id_p = p.get('id', '?')
-
-                    print(f"[DEBUG] Paciente: {nombre_p}, Consultorio: {consultorio}, Especialidad: {especialidad}")
-
-                    self.txt_espera.insert(tk.END, f"  {id_p}. {nombre_p} ({especialidad} - {consultorio})")
-
-            atendidos = [p for p in self.datos.get('pacientes', []) if p.get('atendido', False)]
-            atendidos.sort(key=lambda x: x.get('fecha_atencion') or '', reverse=True)
-
-            for p in atendidos[:20]:
-                consultorio = p.get('consultorio')
-                if not consultorio:
-                    consultorio = 'Consultorio desconocido'
+        for p in self.datos.get('pacientes', []):
+            if not p.get('atendido', False):
+                consultorio = p.get('consultorio') or 'Consultorio desconocido'
                 especialidad = p.get('especialidad', '')
+                nombre_p = p.get('nombre', 'Nombre desconocido')
+                id_p = p.get('id', '?')
+                self.txt_espera.insert(tk.END, f"  {id_p}. {nombre_p} ({especialidad} - {consultorio})")
+
+        for p in self.datos.get('pacientes', []):
+            if p.get('atendido', False):
+                consultorio = p.get('consultorio') or 'Consultorio desconocido'
+                especialidad = p.get('especialidad', '')
+                nombre_p = p.get('nombre', 'Nombre desconocido')
+                id_p = p.get('id', '?')
 
                 fecha_registro = p.get('fecha_registro')
                 fecha_atencion = p.get('fecha_atencion')
-
-                try:
-                    if isinstance(fecha_registro, datetime):
-                        h_reg = fecha_registro.strftime("%H:%M")
-                    elif isinstance(fecha_registro, str) and ' ' in fecha_registro:
-                        h_reg = fecha_registro.split(' ')[1][:5]
-                    else:
-                        h_reg = "Hora desconocida"
-                except Exception as e:
-                    print(f"Error en fecha_registro paciente {p.get('id', '?')}: {e}")
-                    h_reg = "Hora error"
-
-                try:
-                    if isinstance(fecha_atencion, datetime):
-                        h_aten = fecha_atencion.strftime("%H:%M")
-                    elif isinstance(fecha_atencion, str) and ' ' in fecha_atencion:
-                        h_aten = fecha_atencion.split(' ')[1][:5]
-                    else:
-                        h_aten = ""
-                except Exception as e:
-                    print(f"Error en fecha_atencion paciente {p.get('id', '?')}: {e}")
-                    h_aten = ""
-
-                id_p = p.get('id', '?')
-                nombre_p = p.get('nombre', 'Nombre desconocido')
+                h_reg = fecha_registro.strftime("%H:%M") if fecha_registro else ""
+                h_aten = fecha_atencion.strftime("%H:%M") if fecha_atencion else ""
 
                 self.txt_atencion.insert(tk.END, f"{id_p}. {nombre_p} ({especialidad} - {consultorio}) - Reg: {h_reg}, At: {h_aten}")
-
-            if atendidos:
-                ultimo = atendidos[0]
-                consultorio = ultimo.get('consultorio')
-                if not consultorio:
-                    consultorio = 'Consultorio desconocido'
-                especialidad = ultimo.get('especialidad', '')
-
-                self.lbl_last.config(text=f"En atención: {ultimo.get('id', '?')}. {ultimo.get('nombre', 'Desconocido')} ({especialidad} - {consultorio})")
-            else:
-                self.lbl_last.config(text="En atención: Ninguno")
-
-        except Exception as e:
-            print(f"Error al cargar listas: {e}")
-            self.txt_espera.insert(tk.END, "Error al cargar datos")
-            self.txt_atencion.insert(tk.END, "Error al cargar datos")
 
     def _verificar_cambios(self):
         try:

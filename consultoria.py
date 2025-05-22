@@ -11,37 +11,20 @@ from hospital_lib import (
     obtener_pacientes_espera_consultorio,
     obtener_historial_atencion_consultorio,
     guardar_ultimo_llamado,
+    marcar_paciente_atendido,
 )
-
 class ModuloConsultorio:
     def __init__(self, consultorio_id):
-        try:
-            consultorio_id = int(consultorio_id)
-            if not 1 <= consultorio_id <= 14:
-                raise ValueError("Número de consultorio inválido (debe ser 1-14)")
+        self.consultorio_id = str(consultorio_id)
+        self.datos = cargar_datos()
+        self.app = tb.Window(themename="flatly")
+        self.app.title(f"Consultorio {self.consultorio_id} - Hospital de Apoyo Palpa")
+        self.app.geometry("1000x700")
 
-            self.consultorio_id = str(consultorio_id)
-            self.datos = cargar_datos()
+        self.setup_ui()
+        self.setup_hotkeys()
+        self.refresh_data_thread()
 
-            try:
-                self.especialidad = next(
-                    esp['nombre'] for esp in self.datos['especialidades']
-                    if esp['consultorio'] == f"Consultorio {consultorio_id}"
-                )
-            except StopIteration:
-                self.especialidad = None
-
-            self.app = tb.Window(themename="flatly")
-            self.app.title(f"Consultorio {self.consultorio_id} - Hospital de Apoyo Palpa")
-            self.app.geometry("1000x700")
-
-            self.setup_ui()
-            self.setup_hotkeys()
-            self.refresh_data_thread()
-
-        except Exception as e:
-            messagebox.showerror("Error de Inicialización", f"No se pudo iniciar el módulo: {e}")
-            raise
 
     def setup_ui(self):
         header = tb.Frame(self.app, padding=10)
@@ -127,6 +110,8 @@ class ModuloConsultorio:
             mensaje = f"Paciente {nombre}, favor pasar al {consultorio}"
             guardar_ultimo_llamado(mensaje)
 
+            marcar_paciente_atendido(paciente['id'], consultorio)
+
             self.datos = cargar_datos()
             self.actualizar_listas()
         except Exception as e:
@@ -141,7 +126,6 @@ class ModuloConsultorio:
                 return
             ultimo = sorted(hist, key=lambda x: x.get('fecha_atencion', ''), reverse=True)[0]
 
-            # Para asegurar que cada re-llamado sea único, agregamos timestamp
             ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
             mensaje = f"RELLAMADO {ts} Paciente {ultimo['nombre']}, favor pasar al consultorio {self.consultorio_id}"
 
@@ -153,6 +137,7 @@ class ModuloConsultorio:
             self.actualizar_listas()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo re-llamar al paciente: {e}", parent=self.app)
+
 
     def actualizar_listas(self):
         self.wait_tree.delete(*self.wait_tree.get_children())
