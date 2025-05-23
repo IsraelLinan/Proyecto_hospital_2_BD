@@ -157,47 +157,71 @@ class SalaEspera:
     def _cargar_listas(self):
         self.txt_espera.delete(0, tk.END)
         self.txt_atencion.delete(0, tk.END)
+        pacientes = self.datos.get('pacientes', [])
 
-        for p in self.datos.get('pacientes', []):
-            consultorio = p.get('consultorio') or 'Consultorio desconocido'
+
+        # Diccionario para agrupar: paciente_id -> {'nombre':..., 'consultorios': [ (especialidad, consultorio), ... ]}
+        pacientes_pendientes = {}
+        pacientes_atendidos = {}
+
+        for p in pacientes:
+            paciente_id = p.get('paciente_id')
+            nombre = p.get('nombre', 'Nombre desconocido')
             especialidad = p.get('especialidad', '')
-            nombre_p = p.get('nombre', 'Nombre desconocido')
-            id_p = p.get('paciente_id', '?')
-
+            consultorio = p.get('consultorio', '')
+            atendido = p.get('atendido', False)
             fecha_registro = p.get('fecha_registro')
             fecha_atencion = p.get('fecha_atencion')
-            h_reg = fecha_registro.strftime("%H:%M") if fecha_registro else ""
-            h_aten = fecha_atencion.strftime("%H:%M") if fecha_atencion else ""
 
-            if not p.get('atendido', False):
-               self.txt_espera.insert(tk.END, f"  {id_p}. {nombre_p} ({especialidad} - {consultorio})")
+            if not atendido:
+                if paciente_id not in pacientes_pendientes:
+                    pacientes_pendientes[paciente_id] = {
+                        'nombre': nombre,
+                        'consultorios': []
+                    }
+                pacientes_pendientes[paciente_id]['consultorios'].append(f"{especialidad} - {consultorio}")
             else:
-               self.txt_atencion.insert(tk.END, f"{id_p}. {nombre_p} ({especialidad} - {consultorio}) - Reg: {h_reg}, At: {h_aten}")
+                if paciente_id not in pacientes_atendidos:
+                    pacientes_atendidos[paciente_id] = {
+                        'nombre': nombre,
+                        'consultorios': [],
+                        'fecha_registro': fecha_registro,
+                        'fecha_atencion': fecha_atencion
+                    }
+                pacientes_atendidos[paciente_id]['consultorios'].append(f"{especialidad} - {consultorio}")
 
+        # Mostrar pendientes agrupados
+        for pid, info in pacientes_pendientes.items():
+            lista_consultorios = ", ".join(info['consultorios'])
+            self.txt_espera.insert(tk.END, f"{pid}. {info['nombre']} ({lista_consultorios})")
+
+        # Mostrar atendidos agrupados con horario
+        for pid, info in pacientes_atendidos.items():
+            h_reg = info['fecha_registro'].strftime("%H:%M") if info['fecha_registro'] else ""
+            h_aten = info['fecha_atencion'].strftime("%H:%M") if info['fecha_atencion'] else ""
+            lista_consultorios = ", ".join(info['consultorios'])
+            self.txt_atencion.insert(tk.END, f"{pid}. {info['nombre']} ({lista_consultorios}) - Reg: {h_reg}, At: {h_aten}")
 
     def _verificar_cambios(self):
         try:
             nuevos_datos = cargar_datos()
             nuevo_llamado = nuevos_datos.get('ultimo_llamado')
 
-            if nuevo_llamado:
-                if nuevo_llamado.startswith("RELLAMADO_"):
+            if nuevo_llamado != self.ultimo_llamado:
+                if nuevo_llamado and nuevo_llamado.startswith("RELLAMADO_"):
                     mensaje = nuevo_llamado.split('_', 1)[1]
-                    if self.ultimo_llamado != nuevo_llamado:
-                        self._play_audio(mensaje)
+                    self._play_audio(mensaje)
                     self.lbl_last.config(text=f"Re-llamando: {mensaje}")
-                elif self.ultimo_llamado != nuevo_llamado:
+                elif nuevo_llamado:
                     self._play_audio(nuevo_llamado)
                     self.lbl_last.config(text=f"Llamando: {nuevo_llamado}")
 
-            self.ultimo_llamado = nuevo_llamado
+                self.ultimo_llamado = nuevo_llamado
 
             self.datos = nuevos_datos
             self._cargar_listas()
-
         except Exception as e:
             print(f"Error al verificar cambios: {e}")
-
         finally:
             self.root.after(3000, self._verificar_cambios)
 
@@ -246,6 +270,7 @@ if __name__ == "__main__":
         print(f"Error fatal: {e}")
         tk.Tk().withdraw()
         tk.messagebox.showerror("Error", f"No se pudo iniciar la aplicación: {str(e)}")
+
 
 
 

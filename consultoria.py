@@ -93,14 +93,15 @@ class ModuloConsultorio:
         self.app.bind('<F2>', lambda e: self.llamar_siguiente())
         self.app.bind('<F4>', lambda e: self.re_llamar_paciente())
 
+    
     def llamar_siguiente(self):
         try:
             paciente = llamar_siguiente_paciente(self.consultorio_id)
             if not paciente:
-                messagebox.showinfo("Info", "No hay pacientes en espera para este consultorio", parent=self.app)
-                self.status_label.config(text="LIBRE", bootstyle="success")
-                self.paciente_label.config(text="")
-                return
+               messagebox.showinfo("Info", "No hay pacientes en espera para este consultorio", parent=self.app)
+               self.status_label.config(text="LIBRE", bootstyle="success")
+               self.paciente_label.config(text="")
+               return
 
             self.status_label.config(text="OCUPADO", bootstyle="danger")
             nombre = paciente.get('nombre', '')
@@ -116,6 +117,8 @@ class ModuloConsultorio:
             self.actualizar_listas()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo llamar al paciente: {e}", parent=self.app)
+
+
 
     def re_llamar_paciente(self):
         import datetime
@@ -188,15 +191,6 @@ class ModuloConsultorio:
         self.app.protocol("WM_DELETE_WINDOW", self.app.destroy)
         self.app.mainloop()
 
-if __name__ == "__main__":
-    import tkinter.simpledialog as simpledialog
-    consultorio_id = simpledialog.askstring("Consultorio", "Ingrese el número (1-14):")
-    if consultorio_id:
-        try:
-            app = ModuloConsultorio(consultorio_id)
-            app.run()
-        except Exception as e:
-            messagebox.showerror("Error de Inicialización", f"No se pudo iniciar la aplicación: {e}")
 
 
 

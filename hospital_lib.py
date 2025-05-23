@@ -53,6 +53,8 @@ def marcar_paciente_atendido(paciente_id, consultorio):
             """, (paciente_id, consultorio))
             conexion.commit()
     except Exception as e:
+        if conexion:
+            conexion.rollback()
         raise e
     finally:
         if conexion:
@@ -65,12 +67,13 @@ def obtener_pacientes_espera_consultorio(consultorio_id):
         conexion = obtener_conexion()
         with conexion.cursor(cursor_factory=DictCursor) as cursor:
             cursor.execute("""
-                SELECT p.id, p.nombre, e.nombre AS especialidad,
-                       pe.consultorio, pe.fecha_registro, pe.atendido, pe.fecha_atencion
+                SELECT p.id as paciente_id, p.nombre, e.nombre as especialidad, pe.consultorio, pe.atendido
                 FROM pacientes p
                 JOIN pacientes_especialidades pe ON p.id = pe.paciente_id
                 JOIN especialidades e ON pe.especialidad_id = e.id
-                WHERE pe.consultorio = %s AND pe.atendido = FALSE
+                WHERE pe.consultorio = %s
+                  AND pe.atendido = FALSE
+                  AND pe.fecha_registro::date = CURRENT_DATE
                 ORDER BY pe.fecha_registro ASC
             """, (consultorio,))
             return cursor.fetchall()
@@ -79,6 +82,7 @@ def obtener_pacientes_espera_consultorio(consultorio_id):
     finally:
         if conexion:
             liberar_conexion(conexion)
+
             
 def obtener_historial_atencion_consultorio(consultorio_id):
     consultorio = f"Consultorio {consultorio_id}"
@@ -122,7 +126,7 @@ def cargar_datos():
                 FROM pacientes p
                 JOIN pacientes_especialidades pe ON p.id = pe.paciente_id
                 JOIN especialidades e ON pe.especialidad_id = e.id
-                WHERE DATE(pe.fecha_registro) = CURRENT_DATE
+                WHERE pe.fecha_registro::date = CURRENT_DATE
                 ORDER BY pe.fecha_registro
             """)
             pacientes = cursor.fetchall()
@@ -137,11 +141,11 @@ def cargar_datos():
             'ultimo_llamado': ultimo_llamado
         }
     except Exception as e:
-        print(f"Error al cargar datos: {e}")
-        raise
+        raise e
     finally:
         if conexion:
             liberar_conexion(conexion)
+
 
 def guardar_ultimo_llamado(mensaje):
     conexion = None
@@ -223,9 +227,9 @@ def llamar_siguiente_paciente(consultorio_id):
                 FROM pacientes p
                 JOIN pacientes_especialidades pe ON p.id = pe.paciente_id
                 WHERE pe.consultorio = %s
-                  AND p.atendido = FALSE
-                  AND DATE(p.fecha_registro) = CURRENT_DATE
-                ORDER BY p.fecha_registro ASC
+                  AND pe.atendido = FALSE
+                  AND pe.fecha_registro::date = CURRENT_DATE
+                ORDER BY pe.fecha_registro ASC
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED
             """, (consultorio,))
@@ -235,21 +239,15 @@ def llamar_siguiente_paciente(consultorio_id):
                 return None
 
             cursor.execute("""
-                UPDATE pacientes 
+                UPDATE pacientes_especialidades 
                 SET atendido = TRUE, 
                     fecha_atencion = CURRENT_TIMESTAMP
-                WHERE id = %s
-                RETURNING id, nombre, atendido
-            """, (paciente['id'],))
+                WHERE paciente_id = %s AND consultorio = %s AND atendido = FALSE
+                RETURNING paciente_id
+            """, (paciente['id'], consultorio))
 
-            paciente_atendido = cursor.fetchone()
             conexion.commit()
-
-            return {
-                'id': paciente_atendido['id'],
-                'nombre': paciente_atendido['nombre'],
-                'consultorio': paciente['consultorio']
-            }
+            return paciente
     except Exception as e:
         if conexion:
             conexion.rollback()
@@ -257,6 +255,8 @@ def llamar_siguiente_paciente(consultorio_id):
     finally:
         if conexion:
             liberar_conexion(conexion)
+
+
 
 def obtener_pacientes_espera_consultorio(consultorio_id):
     consultorio = f"Consultorio {consultorio_id}"
@@ -273,7 +273,7 @@ def obtener_pacientes_espera_consultorio(consultorio_id):
                 JOIN especialidades e ON pe.especialidad_id = e.id
                 WHERE pe.consultorio = %s
                   AND p.atendido = FALSE
-                  AND DATE(p.fecha_registro) = CURRENT_DATE
+                  AND p.fecha_registro::date = CURRENT_DATE
                 ORDER BY p.fecha_registro ASC
             """, (consultorio,))
             return cursor.fetchall()
@@ -299,7 +299,7 @@ def obtener_historial_atencion_consultorio(consultorio_id):
                 JOIN especialidades e ON pe.especialidad_id = e.id
                 WHERE pe.consultorio = %s
                   AND p.atendido = TRUE
-                  AND DATE(p.fecha_registro) = CURRENT_DATE
+                  AND p.fecha_registro::date = CURRENT_DATE
                 GROUP BY p.id, p.nombre, p.fecha_registro, p.fecha_atencion, pe.consultorio
                 ORDER BY p.fecha_atencion DESC
             """, (consultorio,))
@@ -309,6 +309,8 @@ def obtener_historial_atencion_consultorio(consultorio_id):
     finally:
         if conexion:
             liberar_conexion(conexion)
+
+
 
 def actualizar_paciente(paciente_id, nombre, especialidad_nombre, consultorio):
     conexion = None
