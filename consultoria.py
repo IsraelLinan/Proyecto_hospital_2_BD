@@ -117,7 +117,6 @@ class ModuloConsultorio:
             nombre = paciente.get('nombre', '')
             consultorio = paciente.get('consultorio', f"Consultorio {self.consultorio_id}")
             self.paciente_label.config(text=f"Paciente: {nombre} ({consultorio})")
-
             mensaje = f"Paciente {nombre}, favor pasar al {consultorio}"
             guardar_ultimo_llamado(mensaje)
 

@@ -85,12 +85,29 @@ class SalaEspera:
         self.root.grid_columnconfigure(0, weight=3, minsize=300)
         self.root.grid_columnconfigure(1, weight=7, minsize=500)
         self.root.grid_rowconfigure(0, weight=1)
-
-        izq = tk.Frame(self.root, bg='black')
+        
+        izq = tk.Frame(self.root, bg='#DCEEFF')
         izq.grid(row=0, column=0, sticky='nsew', padx=10, pady=10)
         izq.grid_rowconfigure(0, weight=1)
         izq.grid_columnconfigure(0, weight=1)
-
+        
+        # NUEVO: Label para mostrar paciente y consultorio llamado, con letras grandes
+        """self.lbl_llamado_actual = tk.Label(
+            izq,
+            text="",
+            font=('Arial', 28, 'bold'),
+            fg='white',
+            bg='black',
+            wraplength=1028,
+            justify='left'
+        )
+        self.lbl_llamado_actual.grid(row=0, column=0, pady=(20,10))
+        
+        # Espacio para separar label y logo
+        spacer = tk.Frame(izq, height=40, bg='black')
+        spacer.grid(row=1, column=0)"""
+        
+        # Logo en row=2
         try:
             posibles_rutas = [
                 os.path.join(os.path.dirname(__file__)), 
@@ -108,25 +125,37 @@ class SalaEspera:
                 image = Image.open(logo_path)
                 image = image.resize((LOGO_WIDTH, LOGO_HEIGHT), Image.LANCZOS)
                 self.logo = ImageTk.PhotoImage(image)
-                tk.Label(izq, image=self.logo, bg='black').grid(row=0, column=0, pady=(10,20))
+                tk.Label(izq, image=self.logo, bg='black').grid(row=2, column=0, pady=(10,20))
             else:
                 raise FileNotFoundError("Logo no encontrado")
         except Exception as e:
             print(f"Error al cargar logo: {e}")
             tk.Label(izq, text="HOSPITAL DE APOYO PALPA", 
                     font=('Arial', FONT_TITLE_SIZE, 'bold'), 
-                    fg='white', bg='black').grid(row=0, column=0, pady=(10,20))
+                    fg='black', bg='#b7e4c7').grid(row=2, column=0, pady=(10,20))
 
-        self.lbl_reloj = tk.Label(izq, font=('Arial', FONT_TITLE_SIZE), fg='white', bg='black')
-        self.lbl_reloj.grid(row=1, column=0, pady=(0,5))
+        # Reloj en row=3
+        self.lbl_reloj = tk.Label(izq, font=('Arial', FONT_TITLE_SIZE), fg='black', bg='#DCEEFF')
+        self.lbl_reloj.grid(row=3, column=0, pady=(0,5))
         self._update_clock()
 
-        self.lbl_last = tk.Label(izq, font=('Arial', FONT_LIST_SIZE + 5), 
-                               fg='white', bg='black', width=50, anchor='w')
-        self.lbl_last.grid(row=2, column=0, pady=(5,20))
+        # Label de último llamado en row=4
+        #self.lbl_last = tk.Label(izq, font=('Arial', FONT_LIST_SIZE + 5), 
+                               #fg='white', bg='black', width=50, anchor='w')
+        self.lbl_last = tk.Label(
+            izq,
+            font=('Arial', 28, 'bold'),
+            fg='#000000',
+            bg='#FFCC66',
+            wraplength=1028,          # ancho máximo antes de hacer salto de línea (igual que lbl_llamado_actual)
+            justify='center',        # centra texto multilínea
+            anchor='center'          # posiciona texto centrado en label
+)
+
+        self.lbl_last.grid(row=4, column=0, pady=(5,20))
         self.lbl_last.config(text="Último atendido: Ninguno")
 
-        der = tk.Frame(self.root, bg='#f0f0f0')
+        der = tk.Frame(self.root, bg="#f0f0f0")
         der.grid(row=0, column=1, sticky='nsew', padx=(0,5), pady=10)
         der.grid_rowconfigure(0, weight=1)
         der.grid_rowconfigure(1, weight=1)
@@ -149,6 +178,9 @@ class SalaEspera:
                 ).grid(row=0, column=0, sticky='ew', pady=1)
         self.txt_atencion = tk.Listbox(atencion, font=self.fuente_lst, bg='#ffe6e6', width=40, height=20)
         self.txt_atencion.grid(row=1, column=0, sticky='nsew')
+
+    def actualizar_llamado_actual(self, texto):
+        self.lbl_llamado_actual.config(text=texto)
 
     def _update_clock(self):
         self.lbl_reloj.config(text=datetime.now().strftime("%H:%M:%S"))
@@ -212,9 +244,11 @@ class SalaEspera:
                     mensaje = nuevo_llamado.split('_', 1)[1]
                     self._play_audio(mensaje)
                     self.lbl_last.config(text=f"Re-llamando: {mensaje}")
+                    self.actualizar_llamado_actual(mensaje)  # Actualizar label grande
                 elif nuevo_llamado:
                     self._play_audio(nuevo_llamado)
-                    self.lbl_last.config(text=f"Llamando: {nuevo_llamado}")
+                    self.lbl_last.config(text=f"{nuevo_llamado}")
+                    self.actualizar_llamado_actual(nuevo_llamado)  # Actualizar label grande
 
                 self.ultimo_llamado = nuevo_llamado
 
@@ -270,6 +304,7 @@ if __name__ == "__main__":
         print(f"Error fatal: {e}")
         tk.Tk().withdraw()
         tk.messagebox.showerror("Error", f"No se pudo iniciar la aplicación: {str(e)}")
+
 
 
 
