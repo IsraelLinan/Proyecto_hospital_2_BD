@@ -179,8 +179,8 @@ class SalaEspera:
         self.txt_atencion = tk.Listbox(atencion, font=self.fuente_lst, bg='#ffe6e6', width=40, height=20)
         self.txt_atencion.grid(row=1, column=0, sticky='nsew')
 
-    def actualizar_llamado_actual(self, texto):
-        self.lbl_llamado_actual.config(text=texto)
+    #def actualizar_llamado_actual(self, texto):
+        #self.lbl_llamado_actual.config(text=texto)
 
     def _update_clock(self):
         self.lbl_reloj.config(text=datetime.now().strftime("%H:%M:%S"))
@@ -244,11 +244,11 @@ class SalaEspera:
                     mensaje = nuevo_llamado.split('_', 1)[1]
                     self._play_audio(mensaje)
                     self.lbl_last.config(text=f"Re-llamando: {mensaje}")
-                    self.actualizar_llamado_actual(mensaje)  # Actualizar label grande
+                    #self.actualizar_llamado_actual(mensaje)  # Actualizar label grande
                 elif nuevo_llamado:
                     self._play_audio(nuevo_llamado)
                     self.lbl_last.config(text=f"{nuevo_llamado}")
-                    self.actualizar_llamado_actual(nuevo_llamado)  # Actualizar label grande
+                    #self.actualizar_llamado_actual(nuevo_llamado)  # Actualizar label grande
 
                 self.ultimo_llamado = nuevo_llamado
 
