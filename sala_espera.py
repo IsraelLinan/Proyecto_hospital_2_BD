@@ -16,8 +16,8 @@ WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 800
 FONT_TITLE_SIZE = 28
 FONT_LIST_SIZE = 26
-LOGO_WIDTH = 200
-LOGO_HEIGHT = 200
+LOGO_WIDTH = 500
+LOGO_HEIGHT = 500
 
 class SalaEspera:
     def __init__(self):
@@ -82,37 +82,110 @@ class SalaEspera:
             print(f"MENSAJE DE VOZ (no se pudo reproducir): {texto}")
 
     def _setup_ui(self):
-        self.root.grid_columnconfigure(0, weight=3, minsize=300)
-        self.root.grid_columnconfigure(1, weight=7, minsize=500)
+        # Configurar el grid principal para mantener proporción 60-40
+        total_width = self.root.winfo_screenwidth()
+        left_width = int(total_width * 0.6)  # 60% del ancho total
+        right_width = int(total_width * 0.4)  # 40% del ancho total
+    
+        self.root.grid_columnconfigure(0, weight=6, minsize=left_width)   # 60% para columna izquierda
+        self.root.grid_columnconfigure(1, weight=4, minsize=right_width)  # 40% para columna derecha
         self.root.grid_rowconfigure(0, weight=1)
-        
-        izq = tk.Frame(self.root, bg='#DCEEFF')
+    
+        # Frame izquierdo con ancho fijo
+        izq = tk.Frame(self.root, bg='#DCEEFF', width=left_width)
         izq.grid(row=0, column=0, sticky='nsew', padx=10, pady=10)
+        izq.grid_propagate(False)  # Esto evita que el frame se redimensione
         izq.grid_rowconfigure(0, weight=1)
         izq.grid_columnconfigure(0, weight=1)
-        
-        # NUEVO: Label para mostrar paciente y consultorio llamado, con letras grandes
-        """self.lbl_llamado_actual = tk.Label(
-            izq,
-            text="",
-            font=('Arial', 28, 'bold'),
-            fg='white',
-            bg='black',
-            wraplength=1028,
-            justify='left'
+    
+        # Frame derecho
+        der = tk.Frame(self.root, bg="#f0f0f0", width=right_width)
+        der.grid(row=0, column=1, sticky='nsew', padx=(0,5), pady=10)
+        der.grid_rowconfigure(0, weight=1)
+        der.grid_rowconfigure(1, weight=1)
+        der.grid_columnconfigure(0, weight=1)
+
+        # Lista de espera con scroll horizontal
+        espera = tk.Frame(der, bg='#e6f3ff', bd=2, relief=tk.RAISED)
+        espera.grid(row=0, column=0, sticky='nsew', pady=(0,3), padx=5)
+        espera.grid_columnconfigure(0, weight=1)
+        espera.grid_rowconfigure(1, weight=1)
+    
+        tk.Label(espera, text="EN ESPERA", font=self.fuente_tit, bg='#004a99', fg='white'
+            ).grid(row=0, column=0, sticky='ew', pady=1)
+    
+        # Frame para contener la lista y su scrollbar
+        espera_frame = tk.Frame(espera)
+        espera_frame.grid(row=1, column=0, sticky='nsew')
+        espera_frame.grid_columnconfigure(0, weight=1)
+        espera_frame.grid_rowconfigure(0, weight=1)
+
+        # Scrollbar horizontal y vertical para la lista de espera
+        scroll_y = tk.Scrollbar(espera_frame)
+        scroll_y.grid(row=0, column=1, sticky='ns')
+        scroll_x = tk.Scrollbar(espera_frame, orient='horizontal')
+        scroll_x.grid(row=1, column=0, sticky='ew')
+
+        self.txt_espera = tk.Listbox(espera_frame, 
+                                font=self.fuente_lst,
+                                bg='#e6f3ff',
+                                xscrollcommand=scroll_x.set,
+                                yscrollcommand=scroll_y.set)
+        self.txt_espera.grid(row=0, column=0, sticky='nsew')
+    
+        scroll_x.config(command=self.txt_espera.xview)
+        scroll_y.config(command=self.txt_espera.yview)
+
+        # Lista de atención con scroll horizontal
+        atencion = tk.Frame(der, bg='#ffe6e6', bd=2, relief=tk.RAISED)
+        atencion.grid(row=1, column=0, sticky='nsew', pady=(3,0), padx=5)
+        atencion.grid_columnconfigure(0, weight=1)
+        atencion.grid_rowconfigure(1, weight=1)
+    
+        tk.Label(atencion, text="EN ATENCIÓN", font=self.fuente_tit, bg='#990000', fg='white'
+              ).grid(row=0, column=0, sticky='ew', pady=1)
+    
+        # Frame para contener la lista y su scrollbar
+        atencion_frame = tk.Frame(atencion)
+        atencion_frame.grid(row=1, column=0, sticky='nsew')
+        atencion_frame.grid_columnconfigure(0, weight=1)
+        atencion_frame.grid_rowconfigure(0, weight=1)
+
+        # Scrollbar horizontal y vertical para la lista de atención
+        scroll_y2 = tk.Scrollbar(atencion_frame)
+        scroll_y2.grid(row=0, column=1, sticky='ns')
+        scroll_x2 = tk.Scrollbar(atencion_frame, orient='horizontal')
+        scroll_x2.grid(row=1, column=0, sticky='ew')
+
+        self.txt_atencion = tk.Listbox(atencion_frame, 
+                                  font=self.fuente_lst,
+                                  bg='#ffe6e6',
+                                  xscrollcommand=scroll_x2.set,
+                                  yscrollcommand=scroll_y2.set)
+        self.txt_atencion.grid(row=0, column=0, sticky='nsew')
+    
+        scroll_x2.config(command=self.txt_atencion.xview)
+        scroll_y2.config(command=self.txt_atencion.yview)
+
+        # Configuración del último llamado con wraplength ajustado
+        self.lbl_last = tk.Label(
+        izq,
+        font=('Arial', 28, 'bold'),
+        fg='#000000',
+        bg='#FFCC66',
+        wraplength=int(left_width * 0.9),  # 90% del ancho del frame izquierdo
+        justify='center',
+        anchor='center'
         )
-        self.lbl_llamado_actual.grid(row=0, column=0, pady=(20,10))
-        
-        # Espacio para separar label y logo
-        spacer = tk.Frame(izq, height=40, bg='black')
-        spacer.grid(row=1, column=0)"""
-        
-        # Logo en row=2
+        self.lbl_last.grid(row=4, column=0, pady=(5,20), padx=10, sticky='ew')
+        self.lbl_last.config(text="Último atendido: Ninguno")
+
+        # Logo y reloj
         try:
             posibles_rutas = [
-                os.path.join(os.path.dirname(__file__)), 
-                os.path.dirname(sys.executable),
-                os.getcwd()
+               os.path.join(os.path.dirname(__file__)), 
+               os.path.dirname(sys.executable),
+               os.getcwd()
             ]
             logo_path = None
             for ruta in posibles_rutas:
@@ -122,65 +195,22 @@ class SalaEspera:
                     break
 
             if logo_path:
-                image = Image.open(logo_path)
-                image = image.resize((LOGO_WIDTH, LOGO_HEIGHT), Image.LANCZOS)
-                self.logo = ImageTk.PhotoImage(image)
-                tk.Label(izq, image=self.logo, bg='black').grid(row=2, column=0, pady=(10,20))
+               image = Image.open(logo_path)
+               logo_size = int(left_width * 0.4)  # 40% del ancho del frame izquierdo
+               image = image.resize((logo_size, logo_size), Image.LANCZOS)
+               self.logo = ImageTk.PhotoImage(image)
+               tk.Label(izq, image=self.logo, bg='#DCEEFF').grid(row=2, column=0, pady=(10,20))
             else:
                 raise FileNotFoundError("Logo no encontrado")
         except Exception as e:
             print(f"Error al cargar logo: {e}")
             tk.Label(izq, text="HOSPITAL DE APOYO PALPA", 
                     font=('Arial', FONT_TITLE_SIZE, 'bold'), 
-                    fg='black', bg='#b7e4c7').grid(row=2, column=0, pady=(10,20))
+                    fg='black', bg='#DCEEFF').grid(row=2, column=0, pady=(10,20))
 
-        # Reloj en row=3
         self.lbl_reloj = tk.Label(izq, font=('Arial', FONT_TITLE_SIZE), fg='black', bg='#DCEEFF')
         self.lbl_reloj.grid(row=3, column=0, pady=(0,5))
         self._update_clock()
-
-        # Label de último llamado en row=4
-        #self.lbl_last = tk.Label(izq, font=('Arial', FONT_LIST_SIZE + 5), 
-                               #fg='white', bg='black', width=50, anchor='w')
-        self.lbl_last = tk.Label(
-            izq,
-            font=('Arial', 28, 'bold'),
-            fg='#000000',
-            bg='#FFCC66',
-            wraplength=1028,          # ancho máximo antes de hacer salto de línea (igual que lbl_llamado_actual)
-            justify='center',        # centra texto multilínea
-            anchor='center'          # posiciona texto centrado en label
-)
-
-        self.lbl_last.grid(row=4, column=0, pady=(5,20))
-        self.lbl_last.config(text="Último atendido: Ninguno")
-
-        der = tk.Frame(self.root, bg="#f0f0f0")
-        der.grid(row=0, column=1, sticky='nsew', padx=(0,5), pady=10)
-        der.grid_rowconfigure(0, weight=1)
-        der.grid_rowconfigure(1, weight=1)
-        der.grid_columnconfigure(0, weight=1, minsize=400)
-
-        espera = tk.Frame(der, bg='#e6f3ff', bd=2, relief=tk.RAISED)
-        espera.grid(row=0, column=0, sticky='nsew', pady=(0,3), padx=5)
-        espera.grid_columnconfigure(0, weight=1)
-        espera.grid_rowconfigure(1, weight=1)
-        tk.Label(espera, text="EN ESPERA", font=self.fuente_tit, bg='#004a99', fg='white'
-                ).grid(row=0, column=0, sticky='ew', pady=1)
-        self.txt_espera = tk.Listbox(espera, font=self.fuente_lst, bg='#e6f3ff', width=40, height=20)
-        self.txt_espera.grid(row=1, column=0, sticky='nsew')
-
-        atencion = tk.Frame(der, bg='#ffe6e6', bd=2, relief=tk.RAISED)
-        atencion.grid(row=1, column=0, sticky='nsew', pady=(3,0), padx=5)
-        atencion.grid_columnconfigure(0, weight=1)
-        atencion.grid_rowconfigure(1, weight=1)
-        tk.Label(atencion, text="EN ATENCIÓN", font=self.fuente_tit, bg='#990000', fg='white'
-                ).grid(row=0, column=0, sticky='ew', pady=1)
-        self.txt_atencion = tk.Listbox(atencion, font=self.fuente_lst, bg='#ffe6e6', width=40, height=20)
-        self.txt_atencion.grid(row=1, column=0, sticky='nsew')
-
-    #def actualizar_llamado_actual(self, texto):
-        #self.lbl_llamado_actual.config(text=texto)
 
     def _update_clock(self):
         self.lbl_reloj.config(text=datetime.now().strftime("%H:%M:%S"))

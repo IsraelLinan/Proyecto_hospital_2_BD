@@ -11,7 +11,7 @@ DB_CONFIG = {
     'dbname': 'hospital',
     'user': 'postgres',
     'password': '123456',
-    'host': 'localhost',
+    'host': 'localhost', #'192.168.10.220', #IP de la PC con PostgreSQL
     'port': '5432'
 }
 
