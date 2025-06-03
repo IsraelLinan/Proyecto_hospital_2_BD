@@ -163,29 +163,36 @@ class ModuloConsultorio:
         try:
             espera = obtener_pacientes_espera_consultorio(self.consultorio_id)
             if espera:
-                for p in espera:
-                    especialidad = p.get('especialidad', '')
-                    consultorio = p.get('consultorio', '')
-                    self.wait_tree.insert("", "end", values=(
-                        p['paciente_id'], p['nombre'], f"{especialidad} - {consultorio}"
-                    ))
+               for p in espera:
+                   especialidad = p.get('especialidad', '')
+                   consultorio = p.get('consultorio', '')
+                   self.wait_tree.insert("", "end", values=(
+                      p['paciente_id'], p['nombre'], f"{especialidad} - {consultorio}"
+                ))
             else:
                 self.wait_tree.insert("", "end", values=("", "Sin pacientes en espera", ""))
 
             hist = obtener_historial_atencion_consultorio(self.consultorio_id)
             if hist:
-                for p in hist:
-                    especialidad = p.get('especialidad', '')
-                    consultorio = p.get('consultorio', '')
-                    self.hist_tree.insert("", "end", values=(
-                        p['paciente_id'], p['nombre'], f"{especialidad} - {consultorio}"
-                    ))
+               print("Historial recibido ordenado por fecha_atencion DESC:")
+               for p in hist:
+                   print(f"{p['paciente_id']} - {p['nombre']} - {p['fecha_atencion']}")  # Debug
+
+                # Insertar los pacientes tal cual vienen en la lista (debería ser descendente)
+               for p in hist:
+                   especialidad = p.get('especialidad', '')
+                   consultorio = p.get('consultorio', '')
+                   self.hist_tree.insert("", "end", values=(
+                       p['paciente_id'], p['nombre'], f"{especialidad} - {consultorio}"
+                ))
             else:
                 self.hist_tree.insert("", "end", values=("", "Sin historial de hoy", ""))
+
             print("Listas actualizadas correctamente")  # Diagnóstico
         except Exception as e:
             messagebox.showerror("Error", f"Error al actualizar listas: {e}", parent=self.app)
             print(f"Error en actualizar_listas: {e}")  # Diagnóstico
+
 
     def _formatear_hora(self, fecha):
         if not fecha:

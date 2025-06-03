@@ -89,11 +89,11 @@ class SalaEspera:
     def _setup_ui(self):
         # Configurar el grid principal para mantener proporción 60-40
         total_width = self.root.winfo_screenwidth()
-        left_width = int(total_width * 0.6)  # 60% del ancho total
-        right_width = int(total_width * 0.4)  # 40% del ancho total
+        left_width = int(total_width * 0.5)  # 50% del ancho total
+        right_width = int(total_width * 0.5)  # 50% del ancho total
     
-        self.root.grid_columnconfigure(0, weight=6, minsize=left_width)   # 60% para columna izquierda
-        self.root.grid_columnconfigure(1, weight=4, minsize=right_width)  # 40% para columna derecha
+        self.root.grid_columnconfigure(0, weight=5, minsize=left_width)   # 50% para columna izquierda
+        self.root.grid_columnconfigure(1, weight=5, minsize=right_width)  # 50% para columna derecha
         self.root.grid_rowconfigure(0, weight=1)
     
         # Frame izquierdo con ancho fijo
@@ -222,53 +222,69 @@ class SalaEspera:
         self.root.after(1000, self._update_clock)
         
     def _cargar_listas(self):
-        self.txt_espera.delete(0, tk.END)
-        self.txt_atencion.delete(0, tk.END)
-        pacientes = self.datos.get('pacientes', [])
+       self.txt_espera.delete(0, tk.END)
+       self.txt_atencion.delete(0, tk.END)
+       pacientes = self.datos.get('pacientes', [])
 
+       # Diccionario para agrupar: paciente_id -> {'nombre':..., 'consultorios': [ (especialidad, consultorio), ... ] }
+       pacientes_pendientes = {}
+       pacientes_atendidos = {}
 
-        # Diccionario para agrupar: paciente_id -> {'nombre':..., 'consultorios': [ (especialidad, consultorio), ... ]}
-        pacientes_pendientes = {}
-        pacientes_atendidos = {}
+       for p in pacientes:
+           paciente_id = p.get('paciente_id')
+           nombre = p.get('nombre', 'Nombre desconocido')
+           especialidad = p.get('especialidad', '')
+           consultorio = p.get('consultorio', '')
+           atendido = p.get('atendido', False)
+           fecha_registro = p.get('fecha_registro')
+           fecha_atencion = p.get('fecha_atencion')
 
-        for p in pacientes:
-            paciente_id = p.get('paciente_id')
-            nombre = p.get('nombre', 'Nombre desconocido')
-            especialidad = p.get('especialidad', '')
-            consultorio = p.get('consultorio', '')
-            atendido = p.get('atendido', False)
-            fecha_registro = p.get('fecha_registro')
-            fecha_atencion = p.get('fecha_atencion')
+           if not atendido:
+               if paciente_id not in pacientes_pendientes:
+                   pacientes_pendientes[paciente_id] = {
+                      'nombre': nombre,
+                      'consultorios': []
+                  }
+               pacientes_pendientes[paciente_id]['consultorios'].append(f"{especialidad} - {consultorio}")
+           else:
+              if paciente_id not in pacientes_atendidos:
+                   pacientes_atendidos[paciente_id] = {
+                      'nombre': nombre,
+                      'consultorios': [],
+                      'fecha_registro': fecha_registro,
+                      'fecha_atencion': fecha_atencion
+                }
+              pacientes_atendidos[paciente_id]['consultorios'].append(f"{especialidad} - {consultorio}")
 
-            if not atendido:
-                if paciente_id not in pacientes_pendientes:
-                    pacientes_pendientes[paciente_id] = {
-                        'nombre': nombre,
-                        'consultorios': []
-                    }
-                pacientes_pendientes[paciente_id]['consultorios'].append(f"{especialidad} - {consultorio}")
-            else:
-                if paciente_id not in pacientes_atendidos:
-                    pacientes_atendidos[paciente_id] = {
-                        'nombre': nombre,
-                        'consultorios': [],
-                        'fecha_registro': fecha_registro,
-                        'fecha_atencion': fecha_atencion
-                    }
-                pacientes_atendidos[paciente_id]['consultorios'].append(f"{especialidad} - {consultorio}")
+       # Mostrar pendientes agrupados (sin cambio)
+       for pid, info in pacientes_pendientes.items():
+           lista_consultorios = ", ".join(info['consultorios'])
+           self.txt_espera.insert(tk.END, f"{pid}. {info['nombre']} ({lista_consultorios})")
 
-        # Mostrar pendientes agrupados
-        for pid, info in pacientes_pendientes.items():
-            lista_consultorios = ", ".join(info['consultorios'])
-            self.txt_espera.insert(tk.END, f"{pid}. {info['nombre']} ({lista_consultorios})")
+       # Mostrar atendidos agrupados con horario, orden descendente por fecha_atencion
+       atendidos_ordenados = sorted(
+           pacientes_atendidos.items(),
+           key=lambda item: item[1]['fecha_atencion'] if item[1]['fecha_atencion'] else datetime.min,
+           reverse=True
+       )
 
-        # Mostrar atendidos agrupados con horario
-        for pid, info in pacientes_atendidos.items():
-            h_reg = info['fecha_registro'].strftime("%H:%M") if info['fecha_registro'] else ""
-            h_aten = info['fecha_atencion'].strftime("%H:%M") if info['fecha_atencion'] else ""
-            lista_consultorios = ", ".join(info['consultorios'])
-            self.txt_atencion.insert(tk.END, f"{pid}. {info['nombre']} ({lista_consultorios}) - Reg: {h_reg}, At: {h_aten}")
-
+       for pid, info in atendidos_ordenados:
+           h_reg = info['fecha_registro'].strftime("%H:%M") if info['fecha_registro'] else ""
+           h_aten = info['fecha_atencion'].strftime("%H:%M") if info['fecha_atencion'] else ""
+           lista_consultorios = ", ".join(info['consultorios'])
+           self.txt_atencion.insert(tk.END, f"{pid}. {info['nombre']} ({lista_consultorios}) - Reg: {h_reg}, At: {h_aten}")
+    
+    def _blink_lbl_last(self, flashes=8, color1="#FFCC66", color2="#FF5555", interval=300):
+        if flashes <= 0:
+           self.lbl_last.config(bg=color1)
+           return
+        # Alterna entre color1 y color2
+        current_color = self.lbl_last.cget("bg")
+        next_color = color2 if current_color == color1 else color1
+        self.lbl_last.config(bg=next_color)
+        self.root.after(interval, self._blink_lbl_last, flashes - 1, color1, color2, interval)
+        
+    
     def _verificar_cambios(self):
         try:
             nuevos_datos = cargar_datos()
@@ -280,10 +296,13 @@ class SalaEspera:
                     self._play_audio(mensaje)
                     self.lbl_last.config(text=f"Re-llamando: {mensaje}")
                     #self.actualizar_llamado_actual(mensaje)  # Actualizar label grande
+                    self._blink_lbl_last()  # <-- Llama al efecto aquí
                 elif nuevo_llamado:
                     self._play_audio(nuevo_llamado)
                     self.lbl_last.config(text=f"{nuevo_llamado}")
                     #self.actualizar_llamado_actual(nuevo_llamado)  # Actualizar label grande
+                    self._blink_lbl_last()  # <-- Y también aquí
+
 
                 self.ultimo_llamado = nuevo_llamado
 

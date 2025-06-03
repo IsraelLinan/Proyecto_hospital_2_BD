@@ -1,6 +1,7 @@
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from tkinter import messagebox, filedialog, ttk, Toplevel, StringVar, BooleanVar
+import tkinter as tk  # Import tkinter for scrollbar
 from datetime import datetime
 import threading
 import time
@@ -13,6 +14,8 @@ from hospital_lib import (
     cargar_logo,
     guardar_paciente_multiple_especialidades,
     validar_nombre_paciente,
+    obtener_conexion,
+    liberar_conexion
 )
 
 class ModuloAdmision:
@@ -41,7 +44,7 @@ class ModuloAdmision:
         logo_label = cargar_logo(logo_frame)
         logo_label.pack()
 
-        tb.Label(main_frame, text="Registro de Pacientes", 
+        tb.Label(main_frame, text="Registro de Pacientes",
                  font=("Segoe UI", 20, "bold")).pack(pady=(0,15))
 
         form_frame = tb.Frame(main_frame)
@@ -52,14 +55,12 @@ class ModuloAdmision:
         self.nombre_entry.grid(row=0, column=1, sticky="ew", padx=5)
         self.nombre_entry.focus()
 
-        # Especialidades: Entry readonly que abre popup al click
         tb.Label(form_frame, text="Especialidad Médica:", font=("Segoe UI", 12)).grid(row=1, column=0, sticky="w", pady=8, padx=5)
         self.especialidad_var = StringVar()
         self.especialidad_entry = tb.Entry(form_frame, textvariable=self.especialidad_var, state="readonly", bootstyle="secondary")
         self.especialidad_entry.grid(row=1, column=1, sticky="ew", padx=5)
         self.especialidad_entry.bind("<Button-1>", lambda e: self.abrir_popup_especialidades())
 
-        # Consultorios: Entry readonly que abre popup al click
         tb.Label(form_frame, text="Consultorio:", font=("Segoe UI", 12)).grid(row=2, column=0, sticky="w", pady=8, padx=5)
         self.consultorio_var = StringVar()
         self.consultorio_entry = tb.Entry(form_frame, textvariable=self.consultorio_var, state="readonly", bootstyle="secondary")
@@ -307,14 +308,30 @@ class ModuloAdmision:
                                    command=lambda: self.exportar_pdf_func(filtrar_pacientes()))
         btn_export_pdf.pack(side="left", padx=5)
 
+        btn_editar = tb.Button(btn_frame, text="Editar Paciente", bootstyle="warning-outline", width=15,
+                               command=lambda: self.editar_paciente_popup(tree))
+        btn_editar.pack(side="left", padx=5)
+
+        btn_actualizar = tb.Button(btn_frame, text="Actualizar Lista", bootstyle="info-outline", width=15,
+                                   command=lambda: llenar_tabla(filtrar_pacientes()))
+        btn_actualizar.pack(side="left", padx=5)
+
         columnas = ("ID", "Nombre", "Especialidad", "Consultorio", "Fecha Registro", "Atendido", "Fecha Atención")
 
-        tree = ttk.Treeview(frame, columns=columnas, show="headings", selectmode="browse")
-        tree.pack(fill="both", expand=True)
+        # Contenedor para Treeview + scrollbar
+        contenedor = tb.Frame(frame)
+        contenedor.pack(fill="both", expand=True)
 
-        vsb = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
-        vsb.pack(side="right", fill="y")
+        tree = ttk.Treeview(contenedor, columns=columnas, show="headings", selectmode="browse")
+        tree.grid(row=0, column=0, sticky="nsew")
+
+        vsb = tk.Scrollbar(contenedor, orient="vertical", command=tree.yview)
+        vsb.grid(row=0, column=1, sticky="ns")
+
         tree.configure(yscrollcommand=vsb.set)
+
+        contenedor.grid_rowconfigure(0, weight=1)
+        contenedor.grid_columnconfigure(0, weight=1)
 
         for col in columnas:
             tree.heading(col, text=col)
@@ -334,6 +351,7 @@ class ModuloAdmision:
                 ))
 
         def filtrar_pacientes():
+            self.datos = cargar_datos()  # Recarga datos actualizados
             nombre_f = nombre_filtro_var.get().lower()
             esp_f = especialidad_filtro_var.get()
             cons_f = consultorio_filtro_var.get()
@@ -361,12 +379,106 @@ class ModuloAdmision:
 
         llenar_tabla(self.datos.get('pacientes', []))
 
+    def editar_paciente_popup(self, tree):
+        seleccion = tree.selection()
+        if not seleccion:
+            messagebox.showwarning("Aviso", "Seleccione un paciente para editar.", parent=self.app)
+            return
+        
+        item = tree.item(seleccion[0])
+        valores = item['values']
+        paciente_id = valores[0]
+
+        nombre_actual = valores[1]
+        especialidad_actual = valores[2]
+        consultorio_actual = valores[3]
+
+        popup = tb.Toplevel(self.app)
+        popup.title(f"Editar paciente ID {paciente_id}")
+        popup.geometry("400x300")
+        popup.grab_set()
+
+        tb.Label(popup, text="Nombre:", font=("Segoe UI", 12)).pack(pady=5)
+        nombre_var = tb.StringVar(value=nombre_actual)
+        nombre_entry = tb.Entry(popup, textvariable=nombre_var, bootstyle="info")
+        nombre_entry.pack(fill="x", padx=20)
+
+        tb.Label(popup, text="Especialidad:", font=("Segoe UI", 12)).pack(pady=5)
+        especialidad_var = tb.StringVar(value=especialidad_actual)
+        especialidad_combo = tb.Combobox(popup, values=self.especialidades, textvariable=especialidad_var, state="readonly")
+        especialidad_combo.pack(fill="x", padx=20)
+
+        tb.Label(popup, text="Consultorio:", font=("Segoe UI", 12)).pack(pady=5)
+        consultorios_list = [f"Consultorio {i}" for i in range(1, 15)]
+        consultorio_var = tb.StringVar(value=consultorio_actual)
+        consultorio_combo = tb.Combobox(popup, values=consultorios_list, textvariable=consultorio_var, state="readonly")
+        consultorio_combo.pack(fill="x", padx=20)
+
+        def guardar_cambios():
+            nuevo_nombre = nombre_var.get().strip()
+            nueva_esp = especialidad_var.get()
+            nuevo_cons = consultorio_var.get()
+
+            if not nuevo_nombre or len(nuevo_nombre) < 3:
+                messagebox.showerror("Error", "El nombre debe tener al menos 3 caracteres.", parent=popup)
+                return
+            if not nueva_esp:
+                messagebox.showerror("Error", "Debe seleccionar una especialidad.", parent=popup)
+                return
+            if not nuevo_cons:
+                messagebox.showerror("Error", "Debe seleccionar un consultorio.", parent=popup)
+                return
+
+            try:
+                self.actualizar_paciente(paciente_id, nuevo_nombre, nueva_esp, nuevo_cons)
+                messagebox.showinfo("Éxito", "Paciente actualizado correctamente.", parent=popup)
+                popup.destroy()
+                self.datos = cargar_datos()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo actualizar el paciente: {e}", parent=popup)
+
+        btn_guardar = tb.Button(popup, text="Guardar Cambios", bootstyle="success", command=guardar_cambios)
+        btn_guardar.pack(pady=20)
+
+    def actualizar_paciente(self, paciente_id, nuevo_nombre, nueva_especialidad, nuevo_consultorio):
+        conexion = None
+        try:
+            conexion = obtener_conexion()
+            with conexion.cursor() as cursor:
+                cursor.execute("UPDATE pacientes SET nombre = %s WHERE id = %s", (nuevo_nombre, paciente_id))
+
+                cursor.execute("SELECT id FROM especialidades WHERE nombre = %s", (nueva_especialidad,))
+                esp_id = cursor.fetchone()
+                if not esp_id:
+                    raise Exception("Especialidad no encontrada")
+                esp_id = esp_id[0]
+
+                cursor.execute("""
+                    UPDATE pacientes_especialidades 
+                    SET especialidad_id = %s, consultorio = %s 
+                    WHERE paciente_id = %s
+                """, (esp_id, nuevo_consultorio, paciente_id))
+
+                conexion.commit()
+        except Exception as e:
+            if conexion:
+                conexion.rollback()
+            raise e
+        finally:
+            if conexion:
+                liberar_conexion(conexion)
+
     def run(self):
         self.app.mainloop()
 
 if __name__ == "__main__":
     app = ModuloAdmision()
     app.run()
+
+
+
+
+
 
 
 
