@@ -134,23 +134,35 @@ class ModuloConsultorio:
         import datetime
         print("Intentando re-llamar paciente...")  # Diagnóstico
         try:
-            hist = obtener_historial_atencion_consultorio(self.consultorio_id)
-            if not hist:
-                messagebox.showinfo("Info", "No hay historial de atenciones para re-llamar", parent=self.app)
-                print("No hay historial para re-llamar")  # Diagnóstico
-                return
-            ultimo = sorted(hist, key=lambda x: x.get('fecha_atencion', ''), reverse=True)[0]
-
-            ts = datetime.datetime.now().strftime("%H:%M:%S")
-            mensaje = f"{ts} Paciente {ultimo['nombre']}, favor pasar al consultorio {self.consultorio_id}"
-
-            messagebox.showinfo("Re-llamar Paciente", f"Paciente: {ultimo['nombre']}\nConsultorio: {self.consultorio_id}", parent=self.app)
-
-            guardar_ultimo_llamado(mensaje)
-
-            self.datos = cargar_datos()
-            self.actualizar_listas()
-            print(f"Re-llamado a paciente {ultimo['nombre']}")  # Diagnóstico
+            selected = self.hist_tree.selection()
+            if selected:
+               item = self.hist_tree.item(selected[0])
+               vals = item['values']
+               paciente_nombre = vals[1]
+               consultorio = self.consultorio_id
+               # Puedes personalizar el mensaje aquí:
+               ts = datetime.datetime.now().strftime("%H:%M:%S")
+               mensaje = f"{ts} Paciente {paciente_nombre}, favor pasar al consultorio {consultorio}"
+               messagebox.showinfo("Re-llamar Paciente", f"Paciente: {paciente_nombre}\nConsultorio: {consultorio}", parent=self.app)
+               guardar_ultimo_llamado(mensaje)
+               self.datos = cargar_datos()
+               self.actualizar_listas()
+               print(f"Re-llamado a paciente {paciente_nombre}")  # Diagnóstico
+            else:
+                # Si no hay selección, puedes seguir usando el último del historial como antes:
+                hist = obtener_historial_atencion_consultorio(self.consultorio_id)
+                if not hist:
+                    messagebox.showinfo("Info", "No hay historial de atenciones para re-llamar", parent=self.app)
+                    print("No hay historial para re-llamar")  # Diagnóstico
+                    return
+                ultimo = sorted(hist, key=lambda x: x.get('fecha_atencion', ''), reverse=True)[0]
+                ts = datetime.datetime.now().strftime("%H:%M:%S")
+                mensaje = f"{ts} Paciente {ultimo['nombre']}, favor pasar al consultorio {self.consultorio_id}"
+                messagebox.showinfo("Re-llamar Paciente", f"Paciente: {ultimo['nombre']}\nConsultorio: {self.consultorio_id}", parent=self.app)
+                guardar_ultimo_llamado(mensaje)
+                self.datos = cargar_datos()
+                self.actualizar_listas()
+                print(f"Re-llamado a paciente {ultimo['nombre']}")  # Diagnóstico
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo re-llamar al paciente: {e}", parent=self.app)
             print(f"Error en re_llamar_paciente: {e}")  # Diagnóstico
