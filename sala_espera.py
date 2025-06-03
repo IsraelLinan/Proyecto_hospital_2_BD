@@ -53,34 +53,39 @@ class SalaEspera:
               self.audio_enabled = False
 
     def _execute_audio_playback(self, texto):
+        import re
         try:
-            print(f"Intentando reproducir: {texto}")
-            if pygame.mixer.get_init():
-                try:
-                    with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
-                        temp_path = tmp.name
-                    tts = gTTS(text=texto, lang='es', slow=False)
-                    tts.save(temp_path)
-                    sound = pygame.mixer.Sound(temp_path)
-                    sound.set_volume(1.0)
-                    sound.play()
-                    print("Audio iniciado, esperando a que termine...")
-                    while pygame.mixer.get_busy():
-                        time.sleep(0.1)
-                finally:
-                    try:
-                        if os.path.exists(temp_path):
-                            os.remove(temp_path)
-                    except Exception as e:
-                        print(f"Error al limpiar archivo temporal: {e}")
-            else:
-                winsound.Beep(1000, 500)
-                time.sleep(0.3)
-                winsound.Beep(1500, 500)
-        except Exception as e:
-            print(f"Error en reproducción de audio: {e}")
-            print(f"MENSAJE DE VOZ (no se pudo reproducir): {texto}")
+           print(f"Intentando reproducir: {texto}")
+           if pygame.mixer.get_init():
+            # Función para dividir el texto en fragmentos cortos por puntos, comas o salto de línea
+              def dividir_texto(texto):
+                  partes = re.split(r'[.,\n]', texto)
+                  return [p.strip() for p in partes if p.strip()]
 
+              fragmentos = dividir_texto(texto)
+
+              for fragmento in fragmentos:
+                  with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
+                      temp_path = tmp.name
+                  tts = gTTS(text=fragmento, lang='es', slow=False)
+                  tts.save(temp_path)
+                  sound = pygame.mixer.Sound(temp_path)
+                  sound.set_volume(1.0)
+                  sound.play()
+                  print(f"Reproduciendo fragmento: {fragmento}")
+                  while pygame.mixer.get_busy():
+                      time.sleep(0.1)
+                  if os.path.exists(temp_path):
+                      os.remove(temp_path)
+           else:
+            # Sonido alternativo si pygame no funciona
+               winsound.Beep(1000, 500)
+               time.sleep(0.3)
+               winsound.Beep(1500, 500)
+        except Exception as e:
+           print(f"Error en reproducción de audio: {e}")
+           print(f"MENSAJE DE VOZ (no se pudo reproducir): {texto}")
+        
     def _setup_ui(self):
         # Configurar el grid principal para mantener proporción 60-40
         total_width = self.root.winfo_screenwidth()
