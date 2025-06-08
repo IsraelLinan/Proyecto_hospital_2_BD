@@ -179,6 +179,17 @@ class SalaEspera:
     def _update_clock(self):
         self.lbl_reloj.config(text=datetime.now().strftime("%H:%M:%S"))
         self.root.after(1000, self._update_clock)
+        
+    def _blink_lbl_last(self, flashes=8, color1="#FFCC66", color2="#FF5555", interval=300):
+        if flashes <= 0:
+           self.lbl_last.config(bg=color1)
+           return
+        # Alterna entre color1 y color2
+        current_color = self.lbl_last.cget("bg")
+        next_color = color2 if current_color == color1 else color1
+        self.lbl_last.config(bg=next_color)
+        self.root.after(interval, self._blink_lbl_last, flashes - 1, color1, color2, interval)
+
 
     def _cargar_listas(self):
         self.txt_espera.delete(0, tk.END)
@@ -240,9 +251,11 @@ class SalaEspera:
                     mensaje = nuevo_llamado.split('_', 1)[1]
                     self._play_audio(mensaje)
                     self.lbl_last.config(text=f"Re-llamando: {mensaje}")
+                    self._blink_lbl_last()  # <-- Llama al efecto aquí
                 elif nuevo_llamado:
                     self._play_audio(nuevo_llamado)
                     self.lbl_last.config(text=f"{nuevo_llamado}")
+                    self._blink_lbl_last()  # <-- Y también aquí
 
                 self.ultimo_llamado = nuevo_llamado
 
