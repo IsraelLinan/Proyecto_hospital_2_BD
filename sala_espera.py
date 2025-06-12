@@ -20,6 +20,7 @@ class SalaEspera:
         self.audio_enabled = True
         self.current_audio_thread = None
         self.ultimo_llamado = None
+        self.engine = pyttsx3.init()
 
         try:
             self.engine = pyttsx3.init()
@@ -65,7 +66,7 @@ class SalaEspera:
         self._verificar_cambios()
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
-
+        
     def _execute_audio_playback(self, texto):
         try:
             print(f"Reproduciendo mensaje en español: {texto}")
@@ -292,10 +293,9 @@ class SalaEspera:
         except:
             pass
         self.root.destroy()
-
+               
     def run(self):
         self.root.mainloop()
-
 
 if __name__ == "__main__":
     try:

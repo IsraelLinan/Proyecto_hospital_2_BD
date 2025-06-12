@@ -1,14 +1,16 @@
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
-from tkinter import messagebox, filedialog, ttk, Toplevel, StringVar, BooleanVar
+from tkinter import messagebox, filedialog, ttk, Toplevel, StringVar, BooleanVar, Entry, Button
 import tkinter as tk  # Import tkinter for scrollbar
 from datetime import datetime
 import threading
 import time
 import csv
+import pyttsx3
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from sala_espera import SalaEspera #importamos la clase de sala_espera
 from hospital_lib import (
     cargar_datos,
     cargar_logo,
@@ -17,7 +19,7 @@ from hospital_lib import (
     obtener_conexion,
     liberar_conexion
 )
-
+    
 class ModuloAdmision:
     def __init__(self):
         self.datos = cargar_datos()
@@ -25,13 +27,27 @@ class ModuloAdmision:
         self.app.title("Sistema de Admisión - Hospital de Apoyo Palpa")
         self.app.geometry("900x700")
         self.app.minsize(700, 600)
+        
+        # Inicializamos pyttsx3 para la síntesis de voz
+        self.engine = pyttsx3.init()
+        self.engine.setProperty('rate', 150)  # Establecer la velocidad de la voz
+        self.voice_spanish = None
+
+        # Buscar y seleccionar la voz en español
+        voices = self.engine.getProperty('voices')
+        for voice in voices:
+            if "Spanish" in voice.name:
+                self.voice_spanish = voice.id
+                self.engine.setProperty('voice', self.voice_spanish)
+                break
 
         self.especialidades = [esp['nombre'] for esp in self.datos['especialidades']]
         self.consultorios = [f"Consultorio {i}" for i in range(1, 15)]
+        self.nombre_personal_llamar = None  # Variable para almacenar el nombre temporalmente
 
         self.seleccion_especialidades = []
         self.seleccion_consultorios = []
-
+        
         self.setup_ui()
         threading.Thread(target=self.sincronizar_datos_periodicamente, daemon=True).start()
 
@@ -80,8 +96,55 @@ class ModuloAdmision:
 
         self.btn_reporte = tb.Button(btn_frame, text="Ver Reporte", bootstyle="secondary-outline", command=self.mostrar_reporte)
         self.btn_reporte.pack(side="left", padx=10)
-
+        
+        # Botón "Atención Personal" centrado
+        btn_atencion_personal_frame = tb.Frame(main_frame)
+        btn_atencion_personal_frame.pack(pady=(10, 20), fill="x", anchor="center")
+        self.btn_atencion_personal = tb.Button(btn_atencion_personal_frame, text="Perifoneo Personal", bootstyle="info-outline", command=self.abrir_popup_atencion)
+        self.btn_atencion_personal.pack()
+        
         self.app.bind("<Return>", lambda e: self.registrar_paciente())
+        
+        self.app.mainloop()
+
+    def abrir_popup_atencion(self):
+        popup = Toplevel(self.app)
+        popup.title("Llamar al Personal")
+        popup.geometry("300x250")  # Aumenta el tamaño de la ventana si es necesario
+
+        nombre_label = tb.Label(popup, text="Nombre del Personal:", font=("Segoe UI", 12))
+        nombre_label.pack(pady=10)
+        nombre_entry = tb.Entry(popup, width=30)
+        nombre_entry.pack(pady=5)
+        
+        mensaje_label = tb.Label(popup, text="Mensaje de Perifoneo:", font=("Segoe UI", 12))
+        mensaje_label.pack(pady=10)
+        mensaje_entry = tb.Entry(popup, width=30)
+        mensaje_entry.pack(pady=5)
+
+        def llamar_personal():
+            
+            nombre_personal = nombre_entry.get().strip()
+            mensaje_perifoneo = mensaje_entry.get().strip()
+            if nombre_personal and mensaje_perifoneo:
+                self.nombre_personal_llamar = nombre_personal  # Guardar el nombre temporalmente
+                popup.destroy() # Cerrar el popup sin abrir Sala de Espera
+                mensaje = f"Atención al personal: {self.nombre_personal_llamar}. {mensaje_perifoneo}"
+                self.reproducir_llamado(mensaje)  # Reproducir el mensaje en la misma ventana
+                         
+            else:
+                tk.messagebox.showerror("Error", "El nombre no puede estar vacío", parent=popup)
+
+        llamar_btn = tb.Button(popup, text="Llamar", bootstyle="success", command=llamar_personal)
+        llamar_btn.pack(pady=10)   
+    
+    def reproducir_llamado(self, mensaje):
+        try:
+            print(f"Reproduciendo mensaje: {mensaje}")
+            self.engine.say(mensaje)  # Usamos pyttsx3 para reproducir el mensaje
+            self.engine.runAndWait()
+        except Exception as e:
+            print(f"Error al reproducir mensaje: {e}") 
 
     def abrir_popup_especialidades(self):
         popup = Toplevel(self.app)
@@ -122,6 +185,7 @@ class ModuloAdmision:
 
         btn_guardar = tb.Button(popup, text="Guardar", bootstyle="success", command=guardar_seleccion)
         btn_guardar.pack(pady=10)
+    
 
     def sincronizar_datos_periodicamente(self):
         while True:
